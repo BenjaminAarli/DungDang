@@ -1,0 +1,403 @@
+[gd_scene load_steps=9 format=2]
+
+[ext_resource path="res://font/ttf/AGoblinAppears-o2aV.ttf" type="DynamicFontData" id=1]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+var SERVER_IP = \"127.0.0.1\"
+var SERVER_PORT = 55255
+var SERVER_MAX_PLAYERS = 10
+
+onready var self_data = network.self_data
+
+var players = {}
+
+func _ready():
+	get_tree().connect(\"network_peer_connected\", self, \"_network_peer_connected\")
+	get_tree().connect(\"network_peer_disconnected\", self, \"_network_peer_disconnected\")
+	get_tree().connect(\"server_disconnected\", self, \"_server_disconnected\")
+	get_tree().connect(\"connected_to_server\", self, \"_connected_to_server\")
+	get_tree().connect(\"connection_failed\", self, \"_connected_fail\")
+	pass
+
+func update_networkLabel():
+	var charNames = []
+	for x in players:
+		charNames.append(str(players[x].charName))
+		pass
+	print(charNames)
+	
+	$NetworkData.text = \"\"
+	$NetworkData.text += \"Server: \" + str(SERVER_IP) + \":\" + str(SERVER_PORT) + \"\\n\"
+	$NetworkData.text += \"Players: \" + str(charNames)
+
+func _process(delta):
+	update_networkLabel()
+
+func heal():
+	$BGFX/BGP.emitting = false
+	yield(get_tree().create_timer(0.4), \"timeout\")
+	$BGFX/heal.emitting = true
+	yield(get_tree().create_timer(1.25), \"timeout\")
+	$BGFX/BGP.emitting = true
+
+func _input(event):
+	if Input.is_action_just_pressed(\"f11\"):
+		OS.window_fullscreen = !OS.window_fullscreen
+	if Input.is_action_just_pressed(\"ui_accept\"):
+		if get_tree().is_network_server():
+			heal()
+			rpc(\"write\", $Chat/Say.text)
+			$Chat/Say.text = \"\"
+		else:
+			write(\"[color=red] Not connected to a server. Please, connect to a server. [/color]\")
+
+func update_player_list():
+	var list = $Players/Panel/Label
+	list.text = str(get_incoming_connections())
+	print(list.text)
+	pass
+
+sync func write(text):
+	$Chat/Chat.bbcode_text = \"(\" + str(network.self_data.realName)+ \"): \" + text + \"\\n\" + \"[color=#ddd]\" + $Chat/Chat.text + \"[/color]\"
+	pass
+
+func host_server():
+	write(\"Starting Server...\")
+	players[1] = self_data
+	var peer = NetworkedMultiplayerENet.new()
+	peer.create_server(SERVER_PORT, SERVER_MAX_PLAYERS)
+	get_tree().set_network_peer(peer)
+	write(\"[color=#88f]Server has been started at \" + str(SERVER_IP) + \":\" + str(SERVER_PORT) + \"[/color]\")
+	$ServerAccess/Disconnect.disabled = false
+
+func join_server(ip, port):
+	write(\"Trying to join server: \" + str(SERVER_IP) + \":\" + str(SERVER_PORT))
+	players[get_tree().get_network_unique_id()] = self_data
+	var peer = NetworkedMultiplayerENet.new()
+	peer.create_client(SERVER_IP, SERVER_PORT)
+	get_tree().set_network_peer(peer)
+	write(\"Server joined at \" + str(SERVER_IP) + \":\" + str(SERVER_PORT))
+	$ServerAccess/Disconnect.disabled = false
+
+func _connected_to_server():
+	write(\"You connected to the server!\" + str(SERVER_IP) + \":\" + str(SERVER_PORT))
+	update_player_list()
+	$ServerAccess/Disconnect.disabled = false
+
+func _server_disconnected():
+	write(\"[color=#f88]THE SERVER DISCONNECTED. You are no longer connected to the server.[/color]\")
+	update_player_list()
+
+func _network_peer_connected(id):
+	rpc(\"write\", str(id) + \" connected to the server\")
+	update_player_list()
+
+func _network_peer_disconnected(id):
+	rpc(\"write\", \"[color=#f88]\" + str(id) + \" disconnected from the server[/color]\")
+	update_player_list()
+
+func _connected_fail():
+	write(\"[color=#f88]The connected failed. No server Found.[/color]\")
+	update_player_list()
+	$ServerAccess/Disconnect.disabled = true
+
+func _on_fname_text_changed(new_text):
+	network.self_data.realName = str(new_text)
+
+func _on_SERVER_IP_text_changed(new_text):
+	SERVER_IP = str(new_text)
+
+func _on_SERVER_PORT_text_changed(new_text):
+	SERVER_PORT = int(new_text)
+
+func _on_AccessServer_pressed():
+	join_server(SERVER_IP, SERVER_PORT)
+
+func _on_HostServer_pressed():
+	host_server()
+
+func _on_Disconnect_pressed():
+	get_tree().network_peer = null
+	$ServerAccess/Disconnect.disabled = true
+	write(\"[color=#f88]You DISCONNECTED from the server. You are no longer connected to the server.[/color]\")
+	pass # Replace with function body.
+"
+
+[sub_resource type="Curve" id=2]
+min_value = -360.0
+max_value = 360.0
+_data = [ Vector2( 0, -360 ), 0.0, 0.0, 0, 0, Vector2( 1, 202.909 ), 1756.89, 0.0, 0, 0 ]
+
+[sub_resource type="Gradient" id=3]
+offsets = PoolRealArray( 0.00375235, 0.808612, 1 )
+colors = PoolColorArray( 0.894531, 0.066391, 0.066391, 1, 0.222656, 0.148177, 0.13829, 1, 0.0627451, 0.0588235, 0.0588235, 1 )
+
+[sub_resource type="Gradient" id=4]
+offsets = PoolRealArray( 0, 0.808612, 1 )
+colors = PoolColorArray( 0.0922704, 0.894531, 0.066391, 1, 0.222656, 0.148177, 0.13829, 1, 0.0627451, 0.0588235, 0.0588235, 1 )
+
+[sub_resource type="DynamicFont" id=5]
+size = 10
+font_data = ExtResource( 1 )
+
+[sub_resource type="Theme" id=6]
+default_font = SubResource( 5 )
+
+[sub_resource type="GDScript" id=7]
+script/source = "extends Button
+
+
+
+func _on_fullscreen_toggled(button_pressed):
+	OS.window_fullscreen = button_pressed
+	pass # Replace with function body.
+"
+
+[node name="BitchServer" type="Node2D"]
+script = SubResource( 1 )
+
+[node name="BGFX" type="Node2D" parent="."]
+scale = Vector2( 1.87, 1.87 )
+
+[node name="ColorRect" type="ColorRect" parent="BGFX"]
+margin_right = 1027.0
+margin_bottom = 578.0
+color = Color( 0.0627451, 0.0588235, 0.0588235, 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BGP" type="CPUParticles2D" parent="BGFX"]
+position = Vector2( 511.23, 581.818 )
+amount = 400
+lifetime = 2.0
+explosiveness = 0.22
+lifetime_randomness = 0.37
+emission_shape = 2
+emission_rect_extents = Vector2( 500, 0.1 )
+direction = Vector2( 0, -20 )
+spread = 64.0
+gravity = Vector2( 0, 0 )
+initial_velocity = 200.0
+initial_velocity_random = 1.0
+linear_accel = 56.63
+damping = 100.0
+damping_random = 0.2
+angle = 720.0
+angle_random = 0.6
+angle_curve = SubResource( 2 )
+scale_amount = 5.0
+scale_amount_random = 1.0
+color_ramp = SubResource( 3 )
+
+[node name="heal" type="CPUParticles2D" parent="BGFX"]
+position = Vector2( 511.23, 581.818 )
+emitting = false
+amount = 400
+lifetime = 2.0
+one_shot = true
+explosiveness = 0.75
+randomness = 1.0
+emission_shape = 2
+emission_rect_extents = Vector2( 500, 0.1 )
+direction = Vector2( 20, 20 )
+spread = 180.0
+gravity = Vector2( 0, -98 )
+initial_velocity = 32.0
+initial_velocity_random = 1.0
+linear_accel = 56.63
+scale_amount = 5.0
+scale_amount_random = 1.0
+color_ramp = SubResource( 4 )
+
+[node name="Chat" type="Control" parent="."]
+margin_left = 1120.0
+margin_top = 128.0
+margin_right = 1536.0
+margin_bottom = 888.0
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="Chat"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
+
+[node name="Say" type="LineEdit" parent="Chat"]
+anchor_right = 1.0
+anchor_bottom = 0.044
+margin_left = 24.0
+margin_top = 16.0
+margin_right = -24.0
+margin_bottom = 22.56
+placeholder_text = "You say..."
+placeholder_alpha = 0.467
+caret_blink = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Chat" type="RichTextLabel" parent="Chat"]
+margin_left = 16.0
+margin_top = 72.0
+margin_right = 400.0
+margin_bottom = 736.0
+custom_constants/table_vseparation = 1
+custom_constants/line_separation = 1
+bbcode_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Players" type="Control" parent="."]
+margin_left = 664.0
+margin_top = 136.0
+margin_right = 904.0
+margin_bottom = 232.0
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="Players"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Players/Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ServerAccess" type="Control" parent="."]
+margin_left = 912.0
+margin_top = 136.0
+margin_right = 1112.0
+margin_bottom = 288.0
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="ServerAccess"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_bottom = 32.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="fname" type="LineEdit" parent="ServerAccess"]
+anchor_left = 0.04
+anchor_top = 0.053
+anchor_right = 0.96
+anchor_bottom = 0.211
+margin_left = -9.53674e-07
+margin_top = -0.0560007
+margin_bottom = -0.0720024
+placeholder_text = "Name"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SERVER_IP" type="LineEdit" parent="ServerAccess"]
+anchor_left = 0.04
+anchor_top = 0.368
+anchor_right = 0.96
+anchor_bottom = 0.526
+margin_left = -9.53674e-07
+margin_top = 0.0639954
+margin_bottom = 0.0479965
+placeholder_text = "Server IP"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SERVER_PORT" type="LineEdit" parent="ServerAccess"]
+anchor_left = 0.04
+anchor_top = 0.579
+anchor_right = 0.48
+anchor_bottom = 0.737
+margin_left = -9.53674e-07
+margin_top = -0.00801086
+margin_bottom = -0.0240097
+placeholder_text = "Server Port"
+
+[node name="AccessServer" type="Button" parent="ServerAccess"]
+anchor_left = 0.52
+anchor_top = 0.579
+anchor_right = 0.96
+anchor_bottom = 0.737
+margin_left = -7.62939e-06
+margin_top = -0.00801086
+margin_bottom = -0.0240097
+text = "Access"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HostServer" type="Button" parent="ServerAccess"]
+anchor_left = 0.04
+anchor_top = 0.789
+anchor_right = 0.96
+anchor_bottom = 0.947
+margin_left = -9.53674e-07
+margin_top = 0.071991
+margin_bottom = 0.0559998
+text = "Host"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Disconnect" type="Button" parent="ServerAccess"]
+margin_left = 8.0
+margin_top = 152.0
+margin_right = 192.0
+margin_bottom = 176.0
+disabled = true
+text = "Disconnect"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Buttons" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+theme = SubResource( 6 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="fullscreen" type="Button" parent="Buttons"]
+margin_left = 1880.0
+margin_top = 8.0
+margin_right = 1912.0
+margin_bottom = 40.0
+toggle_mode = true
+text = "[ ]"
+script = SubResource( 7 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="NetworkData" type="Label" parent="."]
+margin_right = 40.0
+margin_bottom = 14.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+[connection signal="text_changed" from="ServerAccess/fname" to="." method="_on_fname_text_changed"]
+[connection signal="text_changed" from="ServerAccess/SERVER_IP" to="." method="_on_SERVER_IP_text_changed"]
+[connection signal="text_changed" from="ServerAccess/SERVER_PORT" to="." method="_on_SERVER_PORT_text_changed"]
+[connection signal="pressed" from="ServerAccess/AccessServer" to="." method="_on_AccessServer_pressed"]
+[connection signal="pressed" from="ServerAccess/HostServer" to="." method="_on_HostServer_pressed"]
+[connection signal="pressed" from="ServerAccess/Disconnect" to="." method="_on_Disconnect_pressed"]
+[connection signal="toggled" from="Buttons/fullscreen" to="Buttons/fullscreen" method="_on_fullscreen_toggled"]

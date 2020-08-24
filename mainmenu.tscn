@@ -1,0 +1,411 @@
+[gd_scene load_steps=11 format=2]
+
+[ext_resource path="res://font/ttf/AGoblinAppears-o2aV.ttf" type="DynamicFontData" id=1]
+[ext_resource path="res://font/ttf/WayfarersToyBoxRegular-gxxER.ttf" type="DynamicFontData" id=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+func _on_hostgame_pressed():
+	network.is_dm = true
+	get_tree().change_scene(\"res://game.tscn\")
+	network.host_server()
+	pass # Replace with function body.
+
+func _on_joingame_pressed():
+	get_tree().change_scene(\"res://game.tscn\")
+	network.join_server(network.SERVER_IP, network.SERVER_PORT)
+	pass # Replace with function body.
+
+func _on_options_pressed():
+	pass # Replace with function body.
+
+func _on_forgeadventure_pressed():
+	pass # Replace with function body.
+
+func _on_charactercreation_pressed():
+	get_tree().change_scene(\"res://create_a_character.tscn\")
+	pass # Replace with function body.
+
+func _on_quitgame_pressed():
+	get_tree().quit()
+	pass # Replace with function body.
+
+func _on_LineEdit_text_changed(new_text):
+	network.self_data.realName = new_text
+	network.self_data.charName = new_text
+	pass # Replace with function body.
+
+func _on_showUpdates_pressed():
+	$UpdateLog.visible = !$UpdateLog.visible
+	pass # Replace with function body.
+
+func _on_characterSheet_pressed():
+	get_tree().change_scene(\"res://character_sheet.tscn\")
+	pass # Replace with function body.
+
+func _on_Port_text_changed(new_text):
+	if new_text == \"\":
+		network.SERVER_PORT = 55255
+	else:
+		network.SERVER_PORT = int(new_text)
+	$Control/IP.text = str(network.SERVER_IP) + \":\" + str(network.SERVER_PORT)
+	pass # Replace with function body.
+
+func _on_Server_text_changed(new_text):
+	if new_text == \"\":
+		network.SERVER_IP = str(IP.get_local_addresses()[3])
+	else:
+		network.SERVER_IP = str(new_text)
+	$Control/IP.text = str(network.SERVER_IP) + \":\" + str(network.SERVER_PORT)
+	pass # Replace with function body.
+
+
+func _on_Name_text_changed(new_text):
+	pass # Replace with function body.
+
+
+func _on_Fullscreen_toggled(button_pressed):
+	print(button_pressed)
+	OS.window_fullscreen = button_pressed
+	pass # Replace with function body.
+
+
+func _on_BitchServer_pressed():
+	get_tree().change_scene(\"res://BitchServer.tscn\")
+	pass # Replace with function body.
+"
+
+[sub_resource type="Curve" id=2]
+min_value = -360.0
+max_value = 360.0
+_data = [ Vector2( 0, -360 ), 0.0, 0.0, 0, 0, Vector2( 1, 202.909 ), 1756.89, 0.0, 0, 0 ]
+
+[sub_resource type="Gradient" id=3]
+offsets = PoolRealArray( 0.00375235, 0.808612, 1 )
+colors = PoolColorArray( 0.894531, 0.202258, 0.066391, 1, 0.222656, 0.148177, 0.13829, 1, 0.0627451, 0.0588235, 0.0588235, 1 )
+
+[sub_resource type="Gradient" id=4]
+offsets = PoolRealArray( 0.120219, 0.808612, 1 )
+colors = PoolColorArray( 0.308594, 0.308594, 0.308594, 1, 0.222656, 0.148177, 0.13829, 1, 0.0627451, 0.0588235, 0.0588235, 1 )
+
+[sub_resource type="DynamicFont" id=5]
+size = 32
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=6]
+size = 10
+font_data = ExtResource( 1 )
+
+[sub_resource type="Theme" id=7]
+default_font = SubResource( 6 )
+
+[sub_resource type="DynamicFont" id=8]
+size = 10
+outline_size = 1
+outline_color = Color( 0, 0, 0, 1 )
+extra_spacing_top = 2
+extra_spacing_bottom = 1
+extra_spacing_char = 1
+extra_spacing_space = 1
+font_data = ExtResource( 1 )
+
+[node name="mainmenu" type="Node2D"]
+script = SubResource( 1 )
+
+[node name="Audio" type="Node2D" parent="."]
+position = Vector2( 437, 256 )
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="Audio"]
+
+[node name="BGFX" type="Node2D" parent="."]
+scale = Vector2( 1.87, 1.87 )
+
+[node name="ColorRect" type="ColorRect" parent="BGFX"]
+margin_right = 1027.0
+margin_bottom = 578.0
+color = Color( 0.0627451, 0.0588235, 0.0588235, 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BGP" type="CPUParticles2D" parent="BGFX"]
+position = Vector2( 511.23, 581.818 )
+amount = 400
+lifetime = 2.0
+randomness = 1.0
+emission_shape = 2
+emission_rect_extents = Vector2( 500, 0.1 )
+direction = Vector2( 0, -20 )
+spread = 64.0
+gravity = Vector2( 0, 0 )
+initial_velocity = 200.0
+initial_velocity_random = 1.0
+linear_accel = 56.63
+damping = 100.0
+damping_random = 0.2
+angle = 720.0
+angle_random = 0.6
+angle_curve = SubResource( 2 )
+scale_amount = 5.0
+scale_amount_random = 1.0
+color_ramp = SubResource( 3 )
+
+[node name="BGP2" type="CPUParticles2D" parent="BGFX"]
+position = Vector2( 511.23, 581.818 )
+amount = 100
+lifetime = 2.0
+randomness = 1.0
+emission_shape = 2
+emission_rect_extents = Vector2( 500, 0.1 )
+direction = Vector2( 0, -20 )
+spread = 64.0
+gravity = Vector2( 0, 0 )
+initial_velocity = 50.0
+initial_velocity_random = 1.0
+linear_accel = 56.63
+damping = 100.0
+damping_random = 0.2
+angle = 720.0
+angle_random = 0.6
+angle_curve = SubResource( 2 )
+scale_amount = 5.0
+scale_amount_random = 1.0
+color_ramp = SubResource( 4 )
+
+[node name="Control" type="Control" parent="."]
+margin_left = 576.0
+margin_top = 256.0
+margin_right = 616.0
+margin_bottom = 296.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control"]
+margin_left = -576.0
+margin_right = 1344.0
+margin_bottom = 320.0
+custom_fonts/font = SubResource( 5 )
+text = "Game Name"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="IP" type="Label" parent="Control"]
+margin_left = 8.0
+margin_top = 384.0
+margin_right = 152.0
+margin_bottom = 398.0
+text = "176.74.211.208:55255"
+
+[node name="Buttons" type="Control" parent="."]
+margin_left = 576.0
+margin_top = 256.0
+margin_right = 1360.0
+margin_bottom = 848.0
+theme = SubResource( 7 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="hostgame" type="Button" parent="Buttons"]
+margin_left = 400.0
+margin_top = 456.0
+margin_right = 504.0
+margin_bottom = 488.0
+focus_mode = 0
+text = "Host Game"
+align = 0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="joingame" type="Button" parent="Buttons"]
+margin_left = 248.0
+margin_top = 408.0
+margin_right = 440.0
+margin_bottom = 440.0
+focus_mode = 0
+text = "Join Game"
+align = 0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="options" type="Button" parent="Buttons"]
+margin_left = 248.0
+margin_top = 504.0
+margin_right = 568.0
+margin_bottom = 536.0
+focus_mode = 0
+disabled = true
+text = "Options"
+align = 0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="forgeadventure" type="Button" parent="Buttons"]
+margin_left = 520.0
+margin_top = 456.0
+margin_right = 776.0
+margin_bottom = 488.0
+focus_mode = 0
+disabled = true
+text = "Forge an adventure"
+align = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="charactercreation" type="Button" parent="Buttons"]
+margin_left = 456.0
+margin_top = 408.0
+margin_right = 776.0
+margin_bottom = 440.0
+focus_mode = 0
+text = "Create the character sheet"
+align = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="quitgame" type="Button" parent="Buttons"]
+margin_left = 584.0
+margin_top = 504.0
+margin_right = 776.0
+margin_bottom = 536.0
+focus_mode = 0
+text = "Leave Game"
+align = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="showUpdates" type="Button" parent="Buttons"]
+margin_left = 8.0
+margin_top = 456.0
+margin_right = 120.0
+margin_bottom = 488.0
+text = "Updates"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="characterSheet" type="Button" parent="Buttons"]
+margin_left = 7.0
+margin_top = 548.0
+margin_right = 776.0
+margin_bottom = 580.0
+text = "Character Sheet"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Name" type="LineEdit" parent="Buttons"]
+margin_left = 8.0
+margin_top = 504.0
+margin_right = 232.0
+margin_bottom = 536.0
+placeholder_text = "Your Name"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Server" type="LineEdit" parent="Buttons"]
+margin_left = 8.0
+margin_top = 408.0
+margin_right = 232.0
+margin_bottom = 440.0
+placeholder_text = "Server Address"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Port" type="LineEdit" parent="Buttons"]
+margin_left = 128.0
+margin_top = 456.0
+margin_right = 232.0
+margin_bottom = 488.0
+placeholder_text = "Port"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Fullscreen" type="Button" parent="Buttons"]
+margin_left = 1304.0
+margin_top = -248.0
+margin_right = 1336.0
+margin_bottom = -216.0
+focus_mode = 0
+toggle_mode = true
+enabled_focus_mode = 0
+text = "[ ]"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BitchServer" type="Button" parent="Buttons"]
+margin_left = 248.0
+margin_top = 456.0
+margin_right = 384.0
+margin_bottom = 488.0
+text = "Bitch Server"
+
+[node name="UpdateLog" type="Control" parent="."]
+visible = false
+margin_left = 96.0
+margin_top = 36.0
+margin_right = 924.0
+margin_bottom = 324.0
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="ColorRect" type="ColorRect" parent="UpdateLog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color( 0.0470588, 0.0470588, 0.0470588, 1 )
+
+[node name="RichTextLabel" type="RichTextLabel" parent="UpdateLog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
+custom_fonts/normal_font = SubResource( 8 )
+text = "What's included! 
+	Host a game! 
+	Join a hosted game!
+	Text Chat! 
+	Dice Rolling
+	A basic character sheet that you can't customize!
+	
+
+What's missing: 
+	Character Sheet Creation.
+	Forging your own adventure.
+	Spell Data (How many die, effects, etc)
+	Spell casting and damage/health systems
+"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+[connection signal="pressed" from="Buttons/hostgame" to="." method="_on_hostgame_pressed"]
+[connection signal="pressed" from="Buttons/joingame" to="." method="_on_joingame_pressed"]
+[connection signal="pressed" from="Buttons/options" to="." method="_on_options_pressed"]
+[connection signal="pressed" from="Buttons/forgeadventure" to="." method="_on_forgeadventure_pressed"]
+[connection signal="pressed" from="Buttons/charactercreation" to="." method="_on_charactercreation_pressed"]
+[connection signal="pressed" from="Buttons/quitgame" to="." method="_on_quitgame_pressed"]
+[connection signal="pressed" from="Buttons/showUpdates" to="." method="_on_showUpdates_pressed"]
+[connection signal="pressed" from="Buttons/characterSheet" to="." method="_on_characterSheet_pressed"]
+[connection signal="text_changed" from="Buttons/Name" to="." method="_on_Name_text_changed"]
+[connection signal="text_changed" from="Buttons/Server" to="." method="_on_Server_text_changed"]
+[connection signal="text_changed" from="Buttons/Port" to="." method="_on_Port_text_changed"]
+[connection signal="toggled" from="Buttons/Fullscreen" to="." method="_on_Fullscreen_toggled"]
+[connection signal="pressed" from="Buttons/BitchServer" to="." method="_on_BitchServer_pressed"]

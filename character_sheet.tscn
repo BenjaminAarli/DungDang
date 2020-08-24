@@ -1,0 +1,1678 @@
+[gd_scene load_steps=11 format=2]
+
+[ext_resource path="res://Image/Character Sheets/5E_CharacterSheet_Fillable-1.png" type="Texture" id=1]
+[ext_resource path="res://create_hintbox_on_hover.gd" type="Script" id=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+# WARNING! Never move or rename the nodes sc.
+# ... doing so will fuck up the save/load system.
+
+onready var sc = $Sprite/Sheetdata
+
+# Camera Movement and Zoom Values
+# Info: We zoom with the camera. 
+# Info: We move the sprite (Character Sheet)
+var sprite_pos = Vector2.ZERO
+var old_mpos = Vector2.ZERO
+var zoom = 0
+
+onready var temp_data = {
+	\"charName\": \"Snap Maitai\",
+	\"realName\": \"Unamed\",
+	\"ac\"  : 10,
+	\"hp\": 1,
+	\"maxhp\": 1,
+	\"speed\": \"30 feet\",
+	\"initiative\": 4,
+	\"deathsaves\": {
+		\"success\": 0,
+		\"failure\": 0,
+	},
+	\"alignment\": \"neutral\",
+	\"xp\": 0,
+	\"lang\": [\"common\", \"orcish\"],
+	\"prefered_class\": \"figther\",
+	\"class\": \"fighter\",
+	\"race\": \"human\",
+	\"stats\": {
+		\"str\": 10,
+		\"dex\": 10,
+		\"con\": 10,
+		\"int\": 10,
+		\"wis\": 10,
+		\"cha\": 10,
+	},
+	\"modifiers\": {
+		\"str\": 0,
+		\"dex\": 0,
+		\"con\": 0,
+		\"int\": 0,
+		\"wis\": 0,
+		\"cha\": 0,		
+	},
+	\"saving_throws\":{
+		\"str\": 0,
+		\"dex\": 0,
+		\"con\": 0,
+		\"wis\": 0,
+		\"int\": 0,
+		\"cha\": 0,
+	},
+	\"spells\": [],
+	\"features\": [],
+	\"personality_traits\": [],
+	\"ideals\": [],
+	\"bonds\": [],
+	\"flaws\": [],
+	\"age\": 21,
+	\"height\": \"180cm\",
+	\"weight\": \"80kg\",
+	\"eyes\": \"green\",
+	\"skin\": \"dark\",
+	\"hair\": \"grey\",
+	\"equipment\": [],
+	\"attacks\": [],
+	\"passive_wisdom (perception)\": 0,
+}
+
+# Info: These are called a, aa, and aaa for no reason. I just needed a name... 
+onready var stats = {
+	\"a\": [],
+	\"aa\": [],
+	\"aaa\": [],
+	\"items\": [\"asdf\"],
+	\"feats\": [[\"item\", \"This is a test description.\"]],
+}
+
+func _ready():
+	print(\"STATS: \" + str(stats.keys()))
+	add_feature(\"test\", \"penis licking glory\")
+	load_file()
+	print(\"FILE LOAD\")
+
+func _process(delta):
+	movement()
+	pass
+
+func _input(event):
+	if Input.is_action_just_pressed(\"pause\"):
+		save_file()
+		if not has_node(\"pause\"):
+			var p = load(\"res://Pause.tscn\").instance()
+			p.name = \"pause\"
+			add_child(p)
+		else: 
+			get_node(\"pause\").queue_free()
+	
+	if event is InputEventMouseButton and event.pressed:
+		# Camera Zoom in/out
+		if event.button_index == BUTTON_WHEEL_UP:
+			if $Camera2D.zoom > Vector2(0.1, 0.1):
+				$Camera2D.zoom -= Vector2(0.25, 0.25)
+		if event.button_index == BUTTON_WHEEL_DOWN:
+			$Camera2D.zoom += Vector2(0.1, 0.1)
+		# ---------------- #
+
+# Info: This is the movement of the character sheet. 
+func movement():
+	if Input.is_mouse_button_pressed(1) or Input.is_mouse_button_pressed(3):
+		if old_mpos == Vector2.ZERO:
+			old_mpos = get_global_mouse_position()
+			sprite_pos = $Sprite.global_position 
+		var new_mpos = get_global_mouse_position() - old_mpos
+		$Sprite.global_position = sprite_pos + new_mpos
+	else:
+		old_mpos = Vector2.ZERO
+
+# Info: This gets the character sheet info and puts it into the stats so it...
+# ... can be saved and loaded later. :3
+func update_stats_using_sheet():
+	var ar = stats.values()
+	print(\"Update Stats Using Sheet: \" + str(stats.keys()))
+	for d in sc.get_child_count():
+		for c in sc.get_child(d).get_child_count():
+			if   d == 0:
+				if sc.get_child(d).get_child(c).text != \"\":
+					ar[d][c] = sc.get_child(d).get_child(c).text
+				else:
+					ar[d][c] = \"\"
+			elif d == 1: 
+				ar[d][c] = sc.get_child(d).get_child(c).pressed
+			elif d == 2: 
+				if sc.get_child(d).get_child(c).text != \"\":
+					ar[d][c] = sc.get_child(d).get_child(c).text
+				else:
+					ar[d][c] = \"\"
+
+# Info: Use the stats dictionary data to update the sheet info. We do this...
+# ... after loading the stats file so the stats are displayed. 
+func insert_stats_to_sheet():
+	print(\"Insert Stats To Sheet: \" + str(stats.keys()))
+	var ar = stats.values()
+	for d in sc.get_child_count():
+		for c in sc.get_child(d).get_child_count():
+			var scd = sc.get_child(d).get_child(c)
+			if   d == 0:
+				scd.text = str(ar[d][c])
+			elif d == 1: 
+				if ar[d][c]:
+					pass
+				else:
+					pass
+				scd.pressed = bool(ar[d][c])
+			elif d == 2: 
+				scd.text = str(ar[d][c])
+			elif d == 3: # Feats
+				pass
+	print(\"Insert Stats To Sheet: \" + str(stats.keys()))
+
+# Info: The stats are never sorted, it's saved and loaded the same way so no...
+# ... orginizing is needed. Just never move a node ever.
+func save_file():
+	print(\"save start: \" + str(stats.keys()))
+	update_stats_using_sheet()
+	var sf = File.new()
+	sf.open(\"user://test_save.save\", File.WRITE)
+	sf.store_line(to_json(stats))
+	sf.close()
+	print(\"save end: \" + str(stats.keys()))
+
+# Load A file
+func load_file():
+	print(\"load start: \" + str(stats.keys()))
+	var sf = File.new()
+	sf.open(\"user://test_save.save\", File.READ)
+	var loaded_file = sf.get_as_text()
+	stats.clear()
+	stats = parse_json(loaded_file)
+	sf.close()
+	insert_stats_to_sheet()
+	print(\"load end: \" + str(stats.keys()))
+	pass
+
+func add_item(item):
+	
+	pass
+
+func add_feature(feat, hovertext):
+	var fear = []
+	fear.append(feat)
+	fear.append(hovertext)
+	stats[\"feats\"] += fear
+	var f        = $Sprite/Sheetdata/Feats/Feature.duplicate()
+	f.hover_text = hovertext
+	f.text       = feat
+	$Sprite/Sheetdata/Feats.add_child(f)
+	
+
+func _on_Save_pressed():
+	save_file()
+	pass # Replace with function body.
+
+func _on_Load_pressed():
+	load_file()
+	pass # Replace with function body.
+
+
+func _on_AddFeat_pressed():
+	$CanvasLayer3/WindowDialog.popup_centered()
+	pass # Replace with function body.
+"
+
+[sub_resource type="Theme" id=2]
+
+[sub_resource type="StyleBoxFlat" id=3]
+bg_color = Color( 0.6, 0.6, 0.6, 0 )
+
+[sub_resource type="StyleBoxFlat" id=4]
+bg_color = Color( 0.6, 0.6, 0.6, 0 )
+
+[sub_resource type="StyleBoxFlat" id=5]
+bg_color = Color( 1, 1, 1, 1 )
+
+[sub_resource type="StyleBoxEmpty" id=6]
+
+[sub_resource type="StyleBoxEmpty" id=7]
+
+[sub_resource type="GDScript" id=8]
+script/source = "extends CanvasLayer
+
+
+
+
+func _on_btnAddFeat_pressed():
+	get_parent().add_feature($WindowDialog/LineEdit.text, $WindowDialog/TextEdit.text)
+	$WindowDialog/LineEdit.text = \"\"
+	$WindowDialog/TextEdit.text = \"\"
+	pass # Replace with function body.
+"
+
+[node name="character_sheet" type="Node2D"]
+script = SubResource( 1 )
+
+[node name="hints" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="CanvasLayer"]
+margin_right = 408.0
+margin_bottom = 128.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Save" type="Button" parent="CanvasLayer/UI"]
+margin_left = 64.0
+margin_top = 16.0
+margin_right = 160.0
+margin_bottom = 40.0
+rect_scale = Vector2( 2, 2 )
+text = "Save"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Load" type="Button" parent="CanvasLayer/UI"]
+margin_left = 272.0
+margin_top = 16.0
+margin_right = 368.0
+margin_bottom = 40.0
+rect_scale = Vector2( 2, 2 )
+text = "Load"
+
+[node name="AddFeat" type="Button" parent="CanvasLayer/UI"]
+margin_left = 480.0
+margin_top = 16.0
+margin_right = 576.0
+margin_bottom = 40.0
+rect_scale = Vector2( 2, 2 )
+text = "Add Feat"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CanvasLayer2" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Control" type="Control" parent="CanvasLayer2"]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer2/Control"]
+margin_left = -32.0
+margin_top = -32.0
+margin_right = 1960.0
+margin_bottom = 1120.0
+color = Color( 0.129412, 0.117647, 0.117647, 1 )
+__meta__ = {
+"_edit_lock_": true
+}
+
+[node name="Sprite" type="Sprite" parent="."]
+position = Vector2( 1200, 1136 )
+scale = Vector2( 0.909412, 0.91 )
+z_as_relative = false
+texture = ExtResource( 1 )
+
+[node name="Sheetdata" type="Control" parent="Sprite"]
+margin_left = -850.0
+margin_top = -1100.0
+margin_right = -810.0
+margin_bottom = -1060.0
+rect_scale = Vector2( 2.145, 2.143 )
+theme = SubResource( 2 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Lines" type="Control" parent="Sprite/Sheetdata"]
+modulate = Color( 0, 0, 0, 1 )
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="charName" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 74.7056
+margin_top = 70.3111
+margin_right = 294.706
+margin_bottom = 114.311
+custom_styles/normal = SubResource( 3 )
+placeholder_text = "Your name"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Class" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 347.0
+margin_top = 60.0
+margin_right = 488.0
+margin_bottom = 84.0
+custom_styles/normal = SubResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Race" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 347.161
+margin_top = 92.2833
+margin_right = 488.161
+margin_bottom = 116.283
+custom_styles/normal = SubResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Background" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 492.0
+margin_top = 62.0
+margin_right = 619.0
+margin_bottom = 86.0
+custom_styles/normal = SubResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="realName" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 620.0
+margin_top = 62.0
+margin_right = 739.0
+margin_bottom = 86.0
+custom_styles/normal = SubResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="xp" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 620.0
+margin_top = 92.0
+margin_right = 738.0
+margin_bottom = 116.0
+custom_styles/normal = SubResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="alignment" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 492.0
+margin_top = 92.0
+margin_right = 619.0
+margin_bottom = 116.0
+custom_styles/normal = SubResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="initiative" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 357.0
+margin_top = 177.0
+margin_right = 405.0
+margin_bottom = 218.0
+rect_scale = Vector2( 1.5, 1.5 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="hp_max" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 376.0
+margin_top = 255.0
+margin_right = 529.0
+margin_bottom = 277.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="hp" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 291.0
+margin_top = 270.0
+margin_right = 501.0
+margin_bottom = 316.0
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="hp_temp" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 290.154
+margin_top = 334.849
+margin_right = 500.154
+margin_bottom = 380.849
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="hit_dice_total" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 319.887
+margin_top = 411.768
+margin_right = 407.887
+margin_bottom = 433.768
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="hit_dice" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 297.0
+margin_top = 430.0
+margin_right = 383.0
+margin_bottom = 457.0
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="equiped_a" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 290.0
+margin_top = 509.0
+margin_right = 397.0
+margin_bottom = 534.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="equiped_b" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 289.0
+margin_top = 534.0
+margin_right = 399.0
+margin_bottom = 561.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="equiped_c" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 289.129
+margin_top = 559.963
+margin_right = 399.129
+margin_bottom = 586.963
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="atk_bonus_a" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 377.0
+margin_top = 509.0
+margin_right = 461.0
+margin_bottom = 534.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="atk_bonus_b" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 376.0
+margin_top = 534.0
+margin_right = 460.0
+margin_bottom = 561.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="atk_bonus_c" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 376.0
+margin_top = 560.0
+margin_right = 460.0
+margin_bottom = 587.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="dmg_type_a" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 428.0
+margin_top = 509.0
+margin_right = 529.0
+margin_bottom = 534.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="dmg_type_b" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 427.0
+margin_top = 534.0
+margin_right = 528.0
+margin_bottom = 561.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="dmg_type_c" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 427.0
+margin_top = 560.0
+margin_right = 529.0
+margin_bottom = 587.0
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="speed" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 433.0
+margin_top = 177.0
+margin_right = 481.0
+margin_bottom = 218.0
+rect_scale = Vector2( 1.5, 1.5 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ac" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 284.003
+margin_top = 169.219
+margin_right = 332.003
+margin_bottom = 213.219
+rect_scale = Vector2( 1.5, 1.5 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="profeciency_bonys" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 95.3509
+margin_top = 209.73
+margin_right = 179.351
+margin_bottom = 249.73
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="str" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 26.1447
+margin_top = 204.602
+margin_right = 74.1447
+margin_bottom = 219.602
+rect_scale = Vector2( 2, 2 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_str" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 262.547
+margin_right = 228.153
+margin_bottom = 302.547
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_dex" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 280.494
+margin_right = 228.153
+margin_bottom = 320.494
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_con" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 297.929
+margin_right = 228.153
+margin_bottom = 337.929
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_int" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 315.877
+margin_right = 228.153
+margin_bottom = 355.877
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_wis" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 332.798
+margin_right = 228.153
+margin_bottom = 372.798
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_cha" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 350.233
+margin_right = 228.153
+margin_bottom = 390.233
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_dex_acrobatics" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 413.306
+margin_right = 228.153
+margin_bottom = 453.306
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_wis_animal_handling" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 429.715
+margin_right = 228.153
+margin_bottom = 469.715
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_int_arcana" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 447.663
+margin_right = 228.153
+margin_bottom = 487.663
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_str_athletics" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 464.585
+margin_right = 228.153
+margin_bottom = 504.585
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_cha_deception" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 482.019
+margin_right = 228.153
+margin_bottom = 522.019
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_int_history" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 499.454
+margin_right = 228.153
+margin_bottom = 539.454
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_wis_insight" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 517.402
+margin_right = 228.153
+margin_bottom = 557.402
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_cha_intimidation" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 534.836
+margin_right = 228.153
+margin_bottom = 574.836
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_int_investigation" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 552.271
+margin_right = 228.153
+margin_bottom = 592.271
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_wis_medicine" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 569.706
+margin_right = 228.153
+margin_bottom = 609.706
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_int_nature" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 587.653
+margin_right = 228.153
+margin_bottom = 627.653
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_wis_perception" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 605.088
+margin_right = 228.153
+margin_bottom = 645.088
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_cha_performance" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 622.523
+margin_right = 228.153
+margin_bottom = 662.523
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_cha_persuasion" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 639.958
+margin_right = 228.153
+margin_bottom = 679.958
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_int_religion" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 657.905
+margin_right = 228.153
+margin_bottom = 697.905
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_dex_sleight_of_hand" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 674.314
+margin_right = 228.153
+margin_bottom = 714.314
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_dex_stealth" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 692.262
+margin_right = 228.153
+margin_bottom = 732.262
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_wis_survival" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 148.153
+margin_top = 709.696
+margin_right = 228.153
+margin_bottom = 749.696
+rect_scale = Vector2( 0.6, 0.6 )
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="mod_str" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 40.7121
+margin_top = 235.882
+margin_right = 124.712
+margin_bottom = 276.882
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="mod_dex" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 37.9355
+margin_top = 326.385
+margin_right = 128.935
+margin_bottom = 375.385
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="mod_con" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 39.1742
+margin_top = 419.459
+margin_right = 129.174
+margin_bottom = 468.459
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="mod_int" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 39.1742
+margin_top = 512.786
+margin_right = 129.174
+margin_bottom = 561.786
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="mod_wis" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 39.1742
+margin_top = 605.088
+margin_right = 129.174
+margin_bottom = 654.088
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="mod_cha" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 39.6868
+margin_top = 697.389
+margin_right = 129.686
+margin_bottom = 746.389
+rect_scale = Vector2( 0.75, 0.75 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="dex" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 26.1447
+margin_top = 296.602
+margin_right = 74.1447
+margin_bottom = 311.602
+rect_scale = Vector2( 2, 2 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="con" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 26.1447
+margin_top = 388.602
+margin_right = 74.1447
+margin_bottom = 403.602
+rect_scale = Vector2( 2, 2 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="int" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 26.1447
+margin_top = 481.602
+margin_right = 74.1447
+margin_bottom = 496.602
+rect_scale = Vector2( 2, 2 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="wis" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 26.1447
+margin_top = 573.602
+margin_right = 74.1447
+margin_bottom = 588.602
+rect_scale = Vector2( 2, 2 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="cha" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 26.1447
+margin_top = 667.602
+margin_right = 74.1447
+margin_bottom = 682.602
+rect_scale = Vector2( 2, 2 )
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="cp" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 297.331
+margin_top = 766.616
+margin_right = 403.331
+margin_bottom = 806.616
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="sp" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 296.818
+margin_top = 800.459
+margin_right = 402.818
+margin_bottom = 840.459
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ep" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 298.356
+margin_top = 833.791
+margin_right = 404.356
+margin_bottom = 873.791
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="gp" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 298.356
+margin_top = 868.66
+margin_right = 404.356
+margin_bottom = 908.66
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="pp" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 297.331
+margin_top = 901.991
+margin_right = 403.331
+margin_bottom = 941.991
+custom_styles/normal = SubResource( 4 )
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="passive_wisdom" type="LineEdit" parent="Sprite/Sheetdata/Lines"]
+margin_left = 29.2206
+margin_top = 757.898
+margin_right = 77.2206
+margin_bottom = 797.898
+custom_styles/normal = SubResource( 4 )
+align = 1
+placeholder_text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Box" type="Control" parent="Sprite/Sheetdata"]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="saving_throw_prof_str" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 261.469
+margin_right = 147.044
+margin_bottom = 285.469
+custom_styles/pressed = SubResource( 5 )
+action_mode = 0
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="inspiration" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 115.857
+margin_top = 157.425
+margin_right = 139.857
+margin_bottom = 181.425
+rect_scale = Vector2( 2, 2 )
+custom_styles/pressed = SubResource( 5 )
+action_mode = 0
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_prof_dex" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 279.047
+margin_right = 147.044
+margin_bottom = 303.047
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_prof_con" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 295.526
+margin_right = 147.044
+margin_bottom = 319.526
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_prof_int" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 314.203
+margin_right = 147.044
+margin_bottom = 338.203
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_prof_wis" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 330.682
+margin_right = 147.044
+margin_bottom = 354.682
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="saving_throw_prof_cha" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 349.358
+margin_right = 147.044
+margin_bottom = 373.358
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_acrobatics" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 410.881
+margin_right = 147.044
+margin_bottom = 434.881
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="death_saves_success_1" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 441.895
+margin_top = 411.767
+margin_right = 465.895
+margin_bottom = 435.767
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="death_saves_success_2" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 458.812
+margin_top = 411.767
+margin_right = 482.812
+margin_bottom = 435.767
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="death_saves_success_3" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 476.242
+margin_top = 411.767
+margin_right = 500.242
+margin_bottom = 435.767
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="death_saves_failure_1" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 441.895
+margin_top = 430.741
+margin_right = 465.895
+margin_bottom = 454.741
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="death_saves_failure_2" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 458.812
+margin_top = 430.741
+margin_right = 482.812
+margin_bottom = 454.741
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="death_saves_failure_3" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 475.729
+margin_top = 431.253
+margin_right = 499.729
+margin_bottom = 455.253
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_animal_handling" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 428.458
+margin_right = 147.044
+margin_bottom = 452.458
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_arcana" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 444.937
+margin_right = 147.044
+margin_bottom = 468.937
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_athletics" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 462.515
+margin_right = 147.044
+margin_bottom = 486.515
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_deception" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 480.093
+margin_right = 147.044
+margin_bottom = 504.093
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_history" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 497.671
+margin_right = 147.044
+margin_bottom = 521.671
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_insight" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 515.249
+margin_right = 147.044
+margin_bottom = 539.249
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_intimidation" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 531.728
+margin_right = 147.044
+margin_bottom = 555.728
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_investigation" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 549.305
+margin_right = 147.044
+margin_bottom = 573.305
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_medicine" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 566.883
+margin_right = 147.044
+margin_bottom = 590.883
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_nature" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 584.461
+margin_right = 147.044
+margin_bottom = 608.461
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_perception" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 602.039
+margin_right = 147.044
+margin_bottom = 626.039
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_performance" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 619.617
+margin_right = 147.044
+margin_bottom = 643.617
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_persuasion" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 637.194
+margin_right = 147.044
+margin_bottom = 661.194
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_religion" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 654.772
+margin_right = 147.044
+margin_bottom = 678.772
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_sleight_of_hand" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 672.35
+margin_right = 147.044
+margin_bottom = 696.35
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_stealth" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 689.928
+margin_right = 147.044
+margin_bottom = 713.928
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="skill_prof_survival" type="CheckBox" parent="Sprite/Sheetdata/Box"]
+margin_left = 123.044
+margin_top = 707.506
+margin_right = 147.044
+margin_bottom = 731.506
+flat = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Textbox" type="Control" parent="Sprite/Sheetdata"]
+modulate = Color( 0, 0, 0, 1 )
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="features" type="TextEdit" parent="Sprite/Sheetdata/Textbox"]
+visible = false
+margin_left = 532.0
+margin_top = 501.0
+margin_right = 749.0
+margin_bottom = 977.0
+custom_styles/normal = SubResource( 6 )
+wrap_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="equipment" type="TextEdit" parent="Sprite/Sheetdata/Textbox"]
+margin_left = 351.0
+margin_top = 767.0
+margin_right = 503.0
+margin_bottom = 978.0
+custom_styles/normal = SubResource( 6 )
+wrap_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="proficiencies" type="TextEdit" parent="Sprite/Sheetdata/Textbox"]
+margin_left = 40.0
+margin_top = 809.0
+margin_right = 261.0
+margin_bottom = 980.0
+custom_styles/normal = SubResource( 7 )
+wrap_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="flaws" type="TextEdit" parent="Sprite/Sheetdata/Textbox"]
+margin_left = 539.0
+margin_top = 412.0
+margin_right = 744.0
+margin_bottom = 460.0
+custom_styles/normal = SubResource( 7 )
+wrap_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="personality_traits" type="TextEdit" parent="Sprite/Sheetdata/Textbox"]
+margin_left = 540.0
+margin_top = 178.0
+margin_right = 745.0
+margin_bottom = 241.0
+custom_styles/normal = SubResource( 7 )
+wrap_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="bonds" type="TextEdit" parent="Sprite/Sheetdata/Textbox"]
+margin_left = 538.784
+margin_top = 339.977
+margin_right = 743.784
+margin_bottom = 387.977
+custom_styles/normal = SubResource( 7 )
+wrap_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ideals" type="TextEdit" parent="Sprite/Sheetdata/Textbox"]
+margin_left = 538.272
+margin_top = 267.162
+margin_right = 743.272
+margin_bottom = 315.162
+custom_styles/normal = SubResource( 7 )
+wrap_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Feats" type="VBoxContainer" parent="Sprite/Sheetdata"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 532.0
+margin_top = 501.0
+margin_right = 713.0
+margin_bottom = 933.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Feature" type="TextEdit" parent="Sprite/Sheetdata/Feats"]
+margin_right = 221.0
+margin_bottom = 30.0
+rect_min_size = Vector2( 0, 30 )
+mouse_filter = 1
+mouse_default_cursor_shape = 16
+size_flags_horizontal = 3
+text = "Darkvision"
+wrap_enabled = true
+script = ExtResource( 2 )
+hover_text = "You can see my penis in the dark. \\n It's not impressive."
+
+[node name="Feature2" type="TextEdit" parent="Sprite/Sheetdata/Feats"]
+margin_top = 34.0
+margin_right = 221.0
+margin_bottom = 64.0
+rect_min_size = Vector2( 0, 30 )
+size_flags_horizontal = 3
+text = "Short Penis"
+wrap_enabled = true
+script = ExtResource( 2 )
+hover_text = "I have a smaller veriety of penis."
+
+[node name="Items" type="VBoxContainer" parent="Sprite/Sheetdata"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 286.0
+margin_top = 587.0
+margin_right = 467.0
+margin_bottom = 678.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Feature" type="TextEdit" parent="Sprite/Sheetdata/Items"]
+margin_right = 221.0
+margin_bottom = 30.0
+rect_min_size = Vector2( 0, 30 )
+mouse_filter = 1
+mouse_default_cursor_shape = 16
+size_flags_horizontal = 3
+text = "Darkvision"
+wrap_enabled = true
+script = ExtResource( 2 )
+hover_text = "You can see my penis in the dark. \\n It's not impressive."
+
+[node name="Feature2" type="TextEdit" parent="Sprite/Sheetdata/Items"]
+margin_top = 34.0
+margin_right = 221.0
+margin_bottom = 64.0
+rect_min_size = Vector2( 0, 30 )
+size_flags_horizontal = 3
+text = "Short Penis"
+wrap_enabled = true
+script = ExtResource( 2 )
+hover_text = "I have a smaller veriety of penis."
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2( 959, 535 )
+current = true
+zoom = Vector2( 3, 3 )
+
+[node name="CanvasLayer3" type="CanvasLayer" parent="."]
+script = SubResource( 8 )
+
+[node name="WindowDialog" type="WindowDialog" parent="CanvasLayer3"]
+margin_left = 456.0
+margin_top = 224.0
+margin_right = 1432.0
+margin_bottom = 856.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CanvasLayer3/WindowDialog"]
+margin_left = 368.0
+margin_top = 216.0
+margin_right = 459.0
+margin_bottom = 230.0
+rect_scale = Vector2( 3, 3 )
+text = "Add a feature!"
+align = 1
+
+[node name="LineEdit" type="LineEdit" parent="CanvasLayer3/WindowDialog"]
+margin_left = 120.0
+margin_top = 288.0
+margin_right = 440.0
+margin_bottom = 328.0
+placeholder_text = "Name of feature!"
+
+[node name="TextEdit" type="TextEdit" parent="CanvasLayer3/WindowDialog"]
+margin_left = 120.0
+margin_top = 344.0
+margin_right = 848.0
+margin_bottom = 608.0
+text = "What does the feat do? This will show up when you hover the mouse over the feat name on the character sheet"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="btnAddFeat" type="Button" parent="CanvasLayer3/WindowDialog"]
+margin_left = 696.0
+margin_top = 272.0
+margin_right = 848.0
+margin_bottom = 320.0
+text = "ADD"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+[connection signal="pressed" from="CanvasLayer/UI/Save" to="." method="_on_Save_pressed"]
+[connection signal="pressed" from="CanvasLayer/UI/Load" to="." method="_on_Load_pressed"]
+[connection signal="pressed" from="CanvasLayer/UI/AddFeat" to="." method="_on_AddFeat_pressed"]
+[connection signal="mouse_entered" from="Sprite/Sheetdata/Feats/Feature" to="Sprite/Sheetdata/Feats/Feature" method="_on_TextEdit_mouse_entered"]
+[connection signal="mouse_exited" from="Sprite/Sheetdata/Feats/Feature" to="Sprite/Sheetdata/Feats/Feature" method="_on_TextEdit_mouse_exited"]
+[connection signal="mouse_entered" from="Sprite/Sheetdata/Feats/Feature2" to="Sprite/Sheetdata/Feats/Feature2" method="_on_TextEdit_mouse_entered"]
+[connection signal="mouse_exited" from="Sprite/Sheetdata/Feats/Feature2" to="Sprite/Sheetdata/Feats/Feature2" method="_on_TextEdit_mouse_exited"]
+[connection signal="mouse_entered" from="Sprite/Sheetdata/Items/Feature" to="Sprite/Sheetdata/Items/Feature" method="_on_TextEdit_mouse_entered"]
+[connection signal="mouse_exited" from="Sprite/Sheetdata/Items/Feature" to="Sprite/Sheetdata/Items/Feature" method="_on_TextEdit_mouse_exited"]
+[connection signal="mouse_entered" from="Sprite/Sheetdata/Items/Feature2" to="Sprite/Sheetdata/Items/Feature2" method="_on_TextEdit_mouse_entered"]
+[connection signal="mouse_exited" from="Sprite/Sheetdata/Items/Feature2" to="Sprite/Sheetdata/Items/Feature2" method="_on_TextEdit_mouse_exited"]
+[connection signal="pressed" from="CanvasLayer3/WindowDialog/btnAddFeat" to="CanvasLayer3" method="_on_btnAddFeat_pressed"]

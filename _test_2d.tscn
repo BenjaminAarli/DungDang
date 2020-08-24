@@ -1,0 +1,185 @@
+[gd_scene load_steps=12 format=2]
+
+[ext_resource path="res://Image/grid_32.png" type="Texture" id=1]
+[ext_resource path="res://Image/B_Icon.png" type="Texture" id=2]
+[ext_resource path="res://Image/grass.jpg" type="Texture" id=3]
+[ext_resource path="res://Image/light222.png" type="Texture" id=4]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+
+var spd = 200
+
+var line_
+
+func _draw():
+	if Input.is_mouse_button_pressed(1):
+		if line_ == null:
+			line_ = get_global_mouse_position()
+		
+		draw_line(line_, get_global_mouse_position(), Color.green, 4)
+	else:
+		if line_ != null:
+			line_ = null
+	pass
+
+
+func _input(event):
+	
+	if Input.is_mouse_button_pressed(4):
+		$Camera2D.zoom -= Vector2(0.1, 0.1)
+	if Input.is_mouse_button_pressed(5):
+		$Camera2D.zoom += Vector2(0.1, 0.1)
+
+func _process(delta):
+	update()
+	if Input.is_action_pressed(\"ui_left\"):
+		$Camera2D.global_position.x -= spd * delta
+	if Input.is_action_pressed(\"ui_right\"):
+		$Camera2D.global_position.x += spd * delta
+	if Input.is_action_pressed(\"ui_up\"):
+		$Camera2D.global_position.y -= spd * delta
+	if Input.is_action_pressed(\"ui_down\"):
+		$Camera2D.global_position.y += spd * delta
+
+"
+
+[sub_resource type="CanvasItemMaterial" id=6]
+
+[sub_resource type="CanvasItemMaterial" id=2]
+light_mode = 2
+
+[sub_resource type="CanvasItemMaterial" id=7]
+light_mode = 2
+
+[sub_resource type="GDScript" id=3]
+script/source = "extends Sprite
+
+var mouse_entered = false
+
+var old_pos = Vector2.ZERO
+var poss = [Vector2.ZERO, Vector2.ZERO]
+
+var on_mouse = false
+
+func tile_pos(vec2):
+	pass
+
+func grid_pos(vec2, grid = 64):
+	vec2.x = stepify(vec2.x, grid)
+	vec2.y = stepify(vec2.y, grid)
+	return vec2
+
+func _input(event):
+	if Input.is_action_just_pressed(\"left_mouse_click\") and mouse_entered:
+		on_mouse = !on_mouse
+	elif Input.is_action_pressed(\"left_mouse_click\"):
+		if mouse_entered:
+			on_mouse = true
+	elif Input.is_mouse_button_pressed(2):
+		on_mouse = false
+	else:
+		on_mouse = false
+
+func _process(delta):
+	if on_mouse:
+		global_position = get_global_mouse_position()
+	else:
+		if poss[0] != global_position:
+			print(\"Global Position: \" + str(global_position))
+			poss[0] = global_position
+#			print(\"You moved \" + str(((global_position.floor() - poss[0]) / 12.8).floor()) + \" feet.\")
+		# Returns the tile you stand on. 
+#		print(str(stepify(global_position.x - (grid/2), 64) / 64))
+		global_position = grid_pos(global_position)
+		
+		if poss[1] != global_position:
+			print(\"Stepped Position: \" + str(global_position))
+			poss[1] = global_position
+
+func _on_Area2D_mouse_entered():
+	mouse_entered = true
+	pass # Replace with function body.
+
+
+func _on_Area2D_mouse_exited():
+	mouse_entered = false
+	pass # Replace with function body.
+"
+
+[sub_resource type="CircleShape2D" id=4]
+radius = 31.0
+
+[sub_resource type="GDScript" id=5]
+script/source = "extends Node2D
+
+
+var line_
+
+func _draw():
+	if Input.is_mouse_button_pressed(1):
+		if line_ == null:
+			line_ = get_global_mouse_position()
+		
+		draw_line(line_, get_global_mouse_position(), Color.green, 4)
+	else:
+		if line_ != null:
+			line_ = null
+	pass
+
+func _process(delta):
+	update()
+"
+
+[node name="_test_2d" type="Node2D"]
+script = SubResource( 1 )
+
+[node name="grass2" type="Sprite" parent="."]
+modulate = Color( 0.243137, 0.243137, 0.243137, 1 )
+light_mask = 0
+material = SubResource( 6 )
+position = Vector2( -8, 24 )
+texture = ExtResource( 3 )
+region_enabled = true
+region_rect = Rect2( 0, 0, 4000, 4000 )
+
+[node name="grass" type="Sprite" parent="."]
+material = SubResource( 2 )
+position = Vector2( -8, 24 )
+texture = ExtResource( 3 )
+region_enabled = true
+region_rect = Rect2( 0, 0, 4000, 4000 )
+
+[node name="Grid" type="Sprite" parent="."]
+light_mask = 3
+material = SubResource( 7 )
+texture = ExtResource( 1 )
+region_enabled = true
+region_rect = Rect2( 0, 0, 400000, 400000 )
+region_filter_clip = true
+
+[node name="Camera2D" type="Camera2D" parent="."]
+current = true
+
+[node name="ICON" type="Sprite" parent="."]
+light_mask = 0
+texture = ExtResource( 2 )
+script = SubResource( 3 )
+
+[node name="Area2D" type="Area2D" parent="ICON"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ICON/Area2D"]
+shape = SubResource( 4 )
+
+[node name="Light2D" type="Light2D" parent="ICON"]
+texture = ExtResource( 4 )
+texture_scale = 2.0
+energy = 0.75
+
+[node name="Sprite" type="Sprite" parent="."]
+
+[node name="draw" type="Node2D" parent="."]
+script = SubResource( 5 )
+[connection signal="mouse_entered" from="ICON/Area2D" to="ICON" method="_on_Area2D_mouse_entered"]
+[connection signal="mouse_exited" from="ICON/Area2D" to="ICON" method="_on_Area2D_mouse_exited"]

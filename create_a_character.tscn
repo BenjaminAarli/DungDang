@@ -1,0 +1,903 @@
+[gd_scene load_steps=11 format=2]
+
+[ext_resource path="res://font/ttf/AGoblinAppears-o2aV.ttf" type="DynamicFontData" id=11]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+var page = 0
+
+var character = {
+	\"hp\":  0, 
+	\"name\": \"Base Name\",
+	\"race\": \"dwarf\",
+	\"type\": \"fighter\",
+	\"lvl\":  1,
+	\"stats\": {
+		\"str\": 0,
+		\"dex\": 0,
+		\"con\": 0,
+		\"int\": 0, 
+		\"wis\": 0,
+		\"cha\": 0,
+		\"spd\": 0,
+	},
+	\"ac\" : 0,
+	\"fortitude\": 0,
+	\"reflex\": 0,
+	\"will\": 0,
+	\"alignment\": \"Netrual\",
+	\"player\": \"Player's Name\",
+	\"weapons\": [\"sword\", \"shield\"],
+	\"lang\" : [\"common\", \"orcish\"]
+}
+
+func _ready():
+	turn_page(0)
+	update_data()
+
+func update_data():
+	$Data/Panel/Name/Label.text = character.name
+	$Data/Panel/Class/Label.text = character.type
+	$Data/Panel/Race/Label.text = character.race
+	var stats = str(character.stats.values())
+	stats.erase(0, 1)
+	$Data/Panel/Stats/Label.text = str(stats)
+	pass
+
+func turn_page(dir):
+	var pages = $Data_Insertion
+	page += dir
+	for c in pages.get_child_count():
+		print(\"Turn Page() Obj: \", pages.get_child(c))
+		if c == page:
+			pages.get_child(c).show()
+			pages.get_child(c).rect_position.y = 0
+		else:
+			pages.get_child(c).hide()
+			pages.get_child(c).rect_position.y += 10000
+	if page >= 1:
+		$Data/Panel/Name.show()
+		$Data/Panel/Class.show()
+		$Data/Panel/Race.show()
+	else:
+		$Data/Panel/Name.hide()
+		$Data/Panel/Class.hide()
+		$Data/Panel/Race.hide()
+	if page >= 2:
+		$Data/Panel/Stats.show()
+	else:
+		$Data/Panel/Stats.hide()
+	pass
+
+
+func _on_TurnForward_pressed():
+	turn_page(1)
+	pass # Replace with function body.
+
+
+func _on_TurnBackward_pressed():
+	turn_page(-1)
+	pass # Replace with function body.
+"
+
+[sub_resource type="DynamicFont" id=2]
+font_data = ExtResource( 11 )
+
+[sub_resource type="Theme" id=3]
+default_font = SubResource( 2 )
+
+[sub_resource type="GDScript" id=4]
+script/source = "extends Control
+
+onready var character = get_owner().character
+
+func _ready():
+	randomize()
+	print(str(get_owner().character))
+	for x in data.races:
+		$Race.add_item(x)
+	for x in data.classes:
+		$Class.add_item(x)
+	
+	var rRace = randi()%$Race.get_item_count() + 1
+	var rClass = randi()%$Class.get_item_count() + 1
+	$Race.select(rRace)
+	$Class.select(rClass)
+	character.type = $Class.get_item_text(rClass)
+	character.race = $Race.get_item_text(rRace)
+
+
+func _on_LineEdit_text_changed(new_text):
+	character.name = new_text
+	get_owner().get_node(\"Data/Panel/Name/Label\").text = new_text
+	pass # Replace with function body.
+
+func _on_Class_item_selected(index):
+	character.type = $Class.get_item_text(index)
+	get_owner().get_node(\"Data/Panel/Class/Label\").text = $Class.get_item_text(index)
+	pass # Replace with function body.
+
+func _on_Race_item_selected(index):
+	character.race = $Race.get_item_text(index)
+	get_owner().get_node(\"Data/Panel/Race/Label\").text = $Race.get_item_text(index)
+	pass # Replace with function body.
+"
+
+[sub_resource type="GDScript" id=5]
+script/source = "extends Control
+
+onready var character = get_owner().character
+
+var statOptions = []
+var stats = []
+var roll = []
+
+var type_bonus = [0, 0, 0, 0, 0, 0]
+var race_bonus = {
+	\"str\": 0,
+	\"dex\": 0,
+	\"con\": 0,
+	\"int\": 0, 
+	\"wis\": 0,
+	\"cha\": 0,
+}
+
+func _ready():
+	check_racebonus(character.race)
+
+func check_racebonus(race):
+	if race == \"dragonborn\":
+		race_bonus.str += 2
+		race_bonus.cha += 1
+	if race == \"dward\":
+		race_bonus.con += 2
+	if race == \"elf\":
+		race_bonus.dex += 2
+	if race == \"gnome\":
+		race_bonus.int += 2
+	if race == \"half-elf\":
+		race_bonus.cha += 2
+		## Add a bonus of +1 to two other stats of their choosing
+	if race == \"halfling\":
+		race_bonus.dex += 2
+	if race == \"half-orc\":
+		race_bonus.str += 2
+		race_bonus.con += 1
+	if race == \"human\":
+		race_bonus.str += 1
+		race_bonus.dex += 1
+		race_bonus.con += 1
+		race_bonus.int += 1
+		race_bonus.wis += 1
+		race_bonus.cha += 1
+		# Pluss an extra language
+	if race == \"tiefling\":
+		race_bonus.cha += 2
+		race_bonus.int += 1
+	
+	var result = \"\"
+	for s in race_bonus.values().size():
+		result += \"(\" + str(race_bonus.values()[s]) + \")\\n\"
+	print(\"I am a \", race)
+	$stats/Label3.text = result
+
+func check_typebonus():
+	
+	pass
+
+func roll_stats():
+	for s in 6: 
+		statOptions.append(roll_for_stat())
+	$StatOptions.text = str(statOptions)
+
+func roll_for_stat():
+	var r = []
+	for d in 4: 
+		randomize()
+		r.append(randi()%6+1)
+	print(\"You rolled 4d6 and got: \", r)
+	print(\"We take away the lowest: \", r.min())
+	r.remove(r.min())
+	var result = 0
+	for x in r.size():
+		result += r[x]
+	print(\"The sum of your roll is: \", result)
+	return result
+
+func _on_RollForStats_pressed():
+	roll_stats()
+	$RollForStats.queue_free()
+	pass # Replace with function body.
+"
+
+[sub_resource type="GDScript" id=6]
+script/source = "extends Control
+
+
+var pressed = []
+var selected = []
+
+var skills = [
+	\"Acrobatics (Dex)\",
+	\"Animal Handling (Wis)\",
+	\"Arcana (Int)\",
+	\"Athletics (Str)\",
+	\"Deception (Cha)\",
+	\"History (Int)\",
+	\"Insight (Wis)\",
+	\"Intimidation (Cha)\",
+	\"Investigation (Int)\",
+	\"Medicine (Wis)\",
+	\"Nature (Int)\",
+	\"Perception (Wis)\",
+	\"Performance (Cha)\",
+	\"Persuasion (Cha)\",
+	\"Religion (Int)\",
+	\"Sleight of hand (Dex)\",
+	\"Stelth (Dex)\",
+	\"Survival (Wis)\",
+]
+
+func _input(event):
+	check_pressed()
+
+func _ready():
+	check_pressed()
+
+func check_pressed():
+	$Label.text = ''
+	$Label2.text = ''
+	# Check all buttons
+	pressed.clear()
+	for btn in $Skills.get_child_count():
+		if $Skills.get_child(btn).pressed:
+			pressed.append(btn)
+	
+	for sel in pressed.size():
+		$Label.text += skills[pressed[sel]] + \"\\n\"
+	
+	if pressed.size() > 2:
+		$Label2.text = \"REMINDER: You can only select two skills.\"
+	else: 
+		$Label2.text = \"\"
+"
+
+[sub_resource type="DynamicFont" id=7]
+size = 14
+extra_spacing_bottom = 14
+extra_spacing_char = 5
+extra_spacing_space = 2
+font_data = ExtResource( 11 )
+
+[sub_resource type="DynamicFont" id=8]
+size = 14
+outline_size = 1
+outline_color = Color( 0.45098, 0.45098, 0.45098, 1 )
+extra_spacing_bottom = 6
+font_data = ExtResource( 11 )
+
+[sub_resource type="DynamicFont" id=9]
+size = 12
+outline_size = 2
+outline_color = Color( 0, 0, 0, 1 )
+use_mipmaps = true
+font_data = ExtResource( 11 )
+
+[node name="create_a_character" type="Node2D"]
+script = SubResource( 1 )
+
+[node name="Control" type="Control" parent="."]
+margin_right = 768.0
+margin_bottom = 600.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_bottom = -8.0
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Data" type="Control" parent="."]
+margin_left = 776.0
+margin_right = 1256.0
+margin_bottom = 1184.0
+rect_scale = Vector2( 0.5, 0.5 )
+theme = SubResource( 3 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="Data"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Name" type="Label" parent="Data/Panel"]
+visible = false
+margin_left = 16.0
+margin_top = 24.0
+margin_right = 96.0
+margin_bottom = 48.0
+text = "Name:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data/Panel/Name"]
+margin_left = 88.0
+margin_right = 432.0
+margin_bottom = 64.0
+autowrap = true
+clip_text = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Class" type="Label" parent="Data/Panel"]
+visible = false
+margin_left = 16.0
+margin_top = 104.0
+margin_right = 102.0
+margin_bottom = 120.0
+text = "Class:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data/Panel/Class"]
+margin_left = 96.0
+margin_top = -8.0
+margin_right = 448.0
+margin_bottom = 24.0
+valign = 1
+autowrap = true
+clip_text = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Race" type="Label" parent="Data/Panel"]
+visible = false
+margin_left = 16.0
+margin_top = 136.0
+margin_right = 95.0
+margin_bottom = 152.0
+text = "Race:"
+
+[node name="Label" type="Label" parent="Data/Panel/Race"]
+margin_left = 96.0
+margin_top = -8.0
+margin_right = 448.0
+margin_bottom = 24.0
+valign = 1
+autowrap = true
+clip_text = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stats" type="Label" parent="Data/Panel"]
+visible = false
+margin_left = 16.0
+margin_top = 176.0
+margin_right = 77.0
+margin_bottom = 287.0
+text = "STR:
+DEX:
+CON:
+INT:
+WIS:
+CHA:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data/Panel/Stats"]
+margin_left = 72.0
+margin_right = 128.0
+margin_bottom = 112.0
+text = "10
+10
+10
+10
+10
+10"
+autowrap = true
+clip_text = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Data_Insertion" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Introduction" type="Control" parent="Data_Insertion"]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data_Insertion/Introduction"]
+margin_left = 56.0
+margin_top = 48.0
+margin_right = 96.0
+margin_bottom = 62.0
+text = "Welcome to the Character Creator. 
+
+It will show you how to create a character. So that you are informed, these are the steps we will take... 
+
+1: Name, Class and Race. You will get options to choose from. 
+2: Stat Rolls. We will roll our dice and get your stats but you choose where you want them. 
+3: Skill Selection. Select two of many useful skills to aid you on your adventures. 
+
+Press the buttons on the bottom right to go to the next screen.
+...and good luck, adventurer!"
+
+[node name="Physical" type="Control" parent="Data_Insertion"]
+visible = false
+margin_right = 40.0
+margin_bottom = 40.0
+script = SubResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Data_Insertion/Physical"]
+margin_left = 64.0
+margin_top = 96.0
+margin_right = 704.0
+margin_bottom = 128.0
+placeholder_text = "Your Characters Name"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Class" type="OptionButton" parent="Data_Insertion/Physical"]
+margin_left = 64.0
+margin_top = 192.0
+margin_right = 376.0
+margin_bottom = 240.0
+focus_mode = 0
+enabled_focus_mode = 0
+text = "Class"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data_Insertion/Physical/Class"]
+margin_left = 8.0
+margin_top = -24.0
+margin_right = 96.0
+text = "Class"
+
+[node name="Race" type="OptionButton" parent="Data_Insertion/Physical"]
+margin_left = 400.0
+margin_top = 192.0
+margin_right = 712.0
+margin_bottom = 240.0
+focus_mode = 0
+enabled_focus_mode = 0
+text = "Race"
+align = 2
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data_Insertion/Physical/Race"]
+margin_left = 144.0
+margin_top = -24.0
+margin_right = 288.0
+margin_bottom = -8.0
+text = "Race"
+align = 2
+
+[node name="Stat_rolls" type="Control" parent="Data_Insertion"]
+visible = false
+margin_right = 40.0
+margin_bottom = 40.0
+script = SubResource( 5 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Info" type="Label" parent="Data_Insertion/Stat_rolls"]
+margin_left = 488.0
+margin_top = 16.0
+margin_right = 760.0
+margin_bottom = 312.0
+text = "The TOMATO Method"
+align = 1
+autowrap = true
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Info2" type="Label" parent="Data_Insertion/Stat_rolls/Info"]
+margin_top = 24.0
+margin_right = 272.0
+margin_bottom = 560.0
+text = "
+Strength is being able to crush a tomato. 
+
+Dexterity is being able to dodge a tomato. 
+Constitution is being able to eat a bad tomato. 
+
+Intelligence is knowing a tomato is a fruit. 
+Wisdom is knowing not to put a tomato in a fruit salad.
+
+ Charisma is being able to sell a tomato based fruit salad."
+autowrap = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="stats" type="Label" parent="Data_Insertion/Stat_rolls"]
+margin_left = 40.0
+margin_top = 56.0
+margin_right = 144.0
+margin_bottom = 184.0
+rect_scale = Vector2( 2, 2 )
+text = "STR:
+DEX:
+CON:
+INT:
+WIS:
+CHA:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data_Insertion/Stat_rolls/stats"]
+margin_left = 40.0
+margin_right = 144.0
+margin_bottom = 99.0
+text = "10
+10
+10
+10
+10
+10"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label2" type="Label" parent="Data_Insertion/Stat_rolls/stats"]
+margin_left = 72.0
+margin_right = 100.0
+margin_bottom = 116.0
+text = "(0)
+(0)
+(0)
+(0)
+(0)
+(0)
+"
+autowrap = true
+
+[node name="Label3" type="Label" parent="Data_Insertion/Stat_rolls/stats"]
+margin_left = 104.0
+margin_right = 124.0
+margin_bottom = 116.0
+text = "(0)
+(0)
+(0)
+(0)
+(0)
+(0)
+"
+align = 1
+autowrap = true
+
+[node name="stats2" type="Label" parent="Data_Insertion/Stat_rolls"]
+margin_left = 24.0
+margin_top = 24.0
+margin_right = 168.0
+margin_bottom = 38.0
+rect_scale = Vector2( 2, 2 )
+custom_colors/font_color = Color( 0.466667, 0.466667, 0.466667, 1 )
+text = "Name Base Class Race"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="StatOptions" type="Label" parent="Data_Insertion/Stat_rolls"]
+margin_left = 208.0
+margin_top = 280.0
+margin_right = 312.0
+margin_bottom = 294.0
+rect_scale = Vector2( 2, 2 )
+text = "[0, 0, 0, 0, 0, 0]"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="stats3" type="Label" parent="Data_Insertion/Stat_rolls/StatOptions"]
+margin_left = -92.0
+margin_right = 12.0
+margin_bottom = 14.0
+text = "Stat Options:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="RollForStats" type="Button" parent="Data_Insertion/Stat_rolls"]
+margin_left = 24.0
+margin_top = 312.0
+margin_right = 192.0
+margin_bottom = 360.0
+text = "Roll Stats"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Data_Insertion/Stat_rolls/RollForStats"]
+margin_left = 176.0
+margin_right = 376.0
+margin_bottom = 32.0
+text = "This can only be done once!
+Don't worry if your stats seem low, 
+that's half the fun sometimes :3"
+
+[node name="Skill_Select" type="Control" parent="Data_Insertion"]
+visible = false
+margin_right = 40.0
+margin_bottom = 40.0
+script = SubResource( 6 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Skills" type="Label" parent="Data_Insertion/Skill_Select"]
+margin_left = 48.0
+margin_top = 24.0
+margin_right = 448.0
+margin_bottom = 579.0
+custom_fonts/font = SubResource( 7 )
+text = "Acrobatics (Dex)
+Animal Handling (Wis)
+Arcana (Int)
+Athletics (Str)
+Deception (Cha)
+History (Int)
+Insight (Wis)
+Intimidation (Cha)
+Investigation (Int)
+Medicine (Wis)
+Nature (Int)
+Perception (Wis)
+Performance (Cha)
+Persuasion (Cha)
+Religion (Int)
+Sleight of hand (Dex)
+Stelth (Dex)
+Survival (Wis)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button1" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_right = 8.0
+margin_bottom = 32.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button2" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 30.0
+margin_right = 8.0
+margin_bottom = 62.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button3" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 61.0
+margin_right = 8.0
+margin_bottom = 93.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button4" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 92.0
+margin_right = 8.0
+margin_bottom = 124.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button5" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 123.0
+margin_right = 8.0
+margin_bottom = 155.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button6" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 152.0
+margin_right = 8.0
+margin_bottom = 184.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button7" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 184.0
+margin_right = 8.0
+margin_bottom = 216.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button8" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 216.0
+margin_right = 8.0
+margin_bottom = 248.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button9" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 248.0
+margin_right = 8.0
+margin_bottom = 280.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button10" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 278.0
+margin_right = 8.0
+margin_bottom = 310.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button11" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 310.0
+margin_right = 8.0
+margin_bottom = 342.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button12" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 341.0
+margin_right = 8.0
+margin_bottom = 373.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button13" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 372.0
+margin_right = 8.0
+margin_bottom = 404.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button14" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 402.0
+margin_right = 8.0
+margin_bottom = 434.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button15" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 434.0
+margin_right = 8.0
+margin_bottom = 466.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button16" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 464.0
+margin_right = 8.0
+margin_bottom = 496.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button17" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 496.0
+margin_right = 8.0
+margin_bottom = 528.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Button18" type="Button" parent="Data_Insertion/Skill_Select/Skills"]
+margin_left = -24.0
+margin_top = 528.0
+margin_right = 8.0
+margin_bottom = 560.0
+rect_scale = Vector2( 0.5, 0.5 )
+toggle_mode = true
+
+[node name="Label" type="Label" parent="Data_Insertion/Skill_Select"]
+margin_left = 464.0
+margin_top = 272.0
+margin_right = 736.0
+margin_bottom = 560.0
+custom_fonts/font = SubResource( 8 )
+custom_colors/font_color = Color( 0.921569, 0.921569, 0.921569, 1 )
+align = 2
+autowrap = true
+max_lines_visible = 7
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="ColorRect" type="ColorRect" parent="Data_Insertion/Skill_Select/Label"]
+show_behind_parent = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = -16.0
+margin_top = -16.0
+margin_right = 16.0
+margin_bottom = 16.0
+color = Color( 0.188235, 0.188235, 0.188235, 1 )
+
+[node name="Label2" type="Label" parent="Data_Insertion/Skill_Select"]
+margin_left = 448.0
+margin_top = 192.0
+margin_right = 760.0
+margin_bottom = 256.0
+custom_fonts/font = SubResource( 9 )
+autowrap = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="TurnForward" type="Button" parent="."]
+margin_left = 948.0
+margin_top = 560.0
+margin_right = 1004.0
+margin_bottom = 580.0
+text = ">>>"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="TurnBackward" type="Button" parent="."]
+margin_left = 784.0
+margin_top = 560.0
+margin_right = 840.0
+margin_bottom = 580.0
+text = "<<<"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+[connection signal="text_changed" from="Data_Insertion/Physical/LineEdit" to="Data_Insertion/Physical" method="_on_LineEdit_text_changed"]
+[connection signal="item_selected" from="Data_Insertion/Physical/Class" to="Data_Insertion/Physical" method="_on_Class_item_selected"]
+[connection signal="item_selected" from="Data_Insertion/Physical/Race" to="Data_Insertion/Physical" method="_on_Race_item_selected"]
+[connection signal="pressed" from="Data_Insertion/Stat_rolls/RollForStats" to="Data_Insertion/Stat_rolls" method="_on_RollForStats_pressed"]
+[connection signal="pressed" from="TurnForward" to="." method="_on_TurnForward_pressed"]
+[connection signal="pressed" from="TurnBackward" to="." method="_on_TurnBackward_pressed"]

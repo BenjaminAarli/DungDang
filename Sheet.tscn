@@ -1,0 +1,474 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://font/ttf/AGoblinAppears-o2aV.ttf" type="DynamicFontData" id=1]
+[ext_resource path="res://Image/DnD5e_sheet.jpg" type="Texture" id=2]
+
+[sub_resource type="DynamicFont" id=1]
+font_data = ExtResource( 1 )
+
+[sub_resource type="Theme" id=2]
+default_font = SubResource( 1 )
+
+[node name="Sheet" type="Node2D"]
+
+[node name="Control" type="Control" parent="."]
+margin_right = 704.0
+margin_bottom = 1080.0
+theme = SubResource( 2 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control/Panel"]
+margin_left = 24.0
+margin_top = 24.0
+margin_right = 128.0
+margin_bottom = 64.0
+text = "Name"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label"]
+margin_left = 104.0
+margin_right = 360.0
+margin_bottom = 40.0
+
+[node name="Label2" type="Label" parent="Control/Panel"]
+margin_left = 24.0
+margin_top = 72.0
+margin_right = 128.0
+margin_bottom = 112.0
+text = "Class"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label2"]
+margin_left = 104.0
+margin_right = 360.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label4" type="Label" parent="Control/Panel"]
+margin_left = 424.0
+margin_top = 72.0
+margin_right = 512.0
+margin_bottom = 112.0
+text = "Race"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label4"]
+margin_left = 88.0
+margin_right = 264.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label5" type="Label" parent="Control/Panel"]
+margin_left = 24.0
+margin_top = 120.0
+margin_right = 204.0
+margin_bottom = 160.0
+text = "Background"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label5"]
+margin_left = 192.0
+margin_right = 416.0
+margin_bottom = 40.0
+
+[node name="Label6" type="Label" parent="Control/Panel"]
+margin_left = 24.0
+margin_top = 168.0
+margin_right = 176.0
+margin_bottom = 208.0
+text = "Alignment"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label6"]
+margin_left = 192.0
+margin_right = 416.0
+margin_bottom = 40.0
+
+[node name="Label3" type="Label" parent="Control/Panel"]
+margin_left = 464.0
+margin_top = 24.0
+margin_right = 512.0
+margin_bottom = 64.0
+text = "XP"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label3"]
+margin_left = 48.0
+margin_right = 224.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label7" type="Label" parent="Control/Panel"]
+margin_left = 456.0
+margin_top = 120.0
+margin_right = 544.0
+margin_bottom = 160.0
+text = "AC"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label7"]
+margin_left = 104.0
+margin_right = 232.0
+margin_bottom = 40.0
+
+[node name="Label8" type="Label" parent="Control/Panel"]
+margin_left = 456.0
+margin_top = 168.0
+margin_right = 544.0
+margin_bottom = 208.0
+text = "SPD"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label8"]
+margin_left = 104.0
+margin_right = 232.0
+margin_bottom = 40.0
+
+[node name="Label9" type="Label" parent="Control/Panel"]
+margin_left = 400.0
+margin_top = 216.0
+margin_right = 546.0
+margin_bottom = 256.0
+text = "Initiation"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/Panel/Label9"]
+margin_left = 160.0
+margin_right = 288.0
+margin_bottom = 40.0
+
+[node name="STATS" type="ColorRect" parent="Control"]
+margin_left = 24.0
+margin_top = 256.0
+margin_right = 152.0
+margin_bottom = 984.0
+color = Color( 1, 1, 1, 0.0823529 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stat" type="Panel" parent="Control/STATS"]
+self_modulate = Color( 0.698039, 0.698039, 0.698039, 1 )
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 144.0
+margin_bottom = 144.0
+rect_scale = Vector2( 0.8, 0.8 )
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Stat3" type="Panel" parent="Control/STATS/Stat"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 128.0
+margin_bottom = 120.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control/STATS/Stat/Stat3"]
+margin_left = -8.0
+margin_top = -8.0
+margin_right = 264.0
+margin_bottom = 72.0
+rect_scale = Vector2( 0.5, 0.5 )
+text = "Strength"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/STATS/Stat/Stat3"]
+margin_left = 8.0
+margin_top = 24.0
+margin_right = 112.0
+margin_bottom = 104.0
+align = 1
+placeholder_text = "11"
+placeholder_alpha = 0.435
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stat2" type="Panel" parent="Control/STATS"]
+self_modulate = Color( 0.698039, 0.698039, 0.698039, 1 )
+margin_left = 8.0
+margin_top = 128.0
+margin_right = 144.0
+margin_bottom = 264.0
+rect_scale = Vector2( 0.8, 0.8 )
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Stat3" type="Panel" parent="Control/STATS/Stat2"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 128.0
+margin_bottom = 120.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control/STATS/Stat2/Stat3"]
+margin_left = -8.0
+margin_top = -8.0
+margin_right = 264.0
+margin_bottom = 72.0
+rect_scale = Vector2( 0.5, 0.5 )
+text = "Dexterity"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/STATS/Stat2/Stat3"]
+margin_left = 8.0
+margin_top = 24.0
+margin_right = 112.0
+margin_bottom = 104.0
+align = 1
+placeholder_text = "11"
+placeholder_alpha = 0.435
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stat3" type="Panel" parent="Control/STATS"]
+self_modulate = Color( 0.698039, 0.698039, 0.698039, 1 )
+margin_left = 8.0
+margin_top = 248.0
+margin_right = 144.0
+margin_bottom = 384.0
+rect_scale = Vector2( 0.8, 0.8 )
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Stat3" type="Panel" parent="Control/STATS/Stat3"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 128.0
+margin_bottom = 120.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control/STATS/Stat3/Stat3"]
+margin_left = -8.0
+margin_top = -8.0
+margin_right = 264.0
+margin_bottom = 72.0
+rect_scale = Vector2( 0.5, 0.5 )
+text = "Consitution"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/STATS/Stat3/Stat3"]
+margin_left = 8.0
+margin_top = 24.0
+margin_right = 112.0
+margin_bottom = 104.0
+align = 1
+placeholder_text = "11"
+placeholder_alpha = 0.435
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stat4" type="Panel" parent="Control/STATS"]
+self_modulate = Color( 0.698039, 0.698039, 0.698039, 1 )
+margin_left = 8.0
+margin_top = 368.0
+margin_right = 144.0
+margin_bottom = 504.0
+rect_scale = Vector2( 0.8, 0.8 )
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Stat3" type="Panel" parent="Control/STATS/Stat4"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 128.0
+margin_bottom = 120.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control/STATS/Stat4/Stat3"]
+margin_left = -8.0
+margin_top = -8.0
+margin_right = 264.0
+margin_bottom = 72.0
+rect_scale = Vector2( 0.5, 0.5 )
+text = "Intelligence"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/STATS/Stat4/Stat3"]
+margin_left = 8.0
+margin_top = 24.0
+margin_right = 112.0
+margin_bottom = 104.0
+align = 1
+placeholder_text = "11"
+placeholder_alpha = 0.435
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stat5" type="Panel" parent="Control/STATS"]
+self_modulate = Color( 0.698039, 0.698039, 0.698039, 1 )
+margin_left = 8.0
+margin_top = 488.0
+margin_right = 144.0
+margin_bottom = 624.0
+rect_scale = Vector2( 0.8, 0.8 )
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Stat3" type="Panel" parent="Control/STATS/Stat5"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 128.0
+margin_bottom = 120.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control/STATS/Stat5/Stat3"]
+margin_left = -8.0
+margin_top = -8.0
+margin_right = 264.0
+margin_bottom = 72.0
+rect_scale = Vector2( 0.5, 0.5 )
+text = "Wisdow"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/STATS/Stat5/Stat3"]
+margin_left = 8.0
+margin_top = 24.0
+margin_right = 112.0
+margin_bottom = 104.0
+align = 1
+placeholder_text = "11"
+placeholder_alpha = 0.435
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stat6" type="Panel" parent="Control/STATS"]
+self_modulate = Color( 0.698039, 0.698039, 0.698039, 1 )
+margin_left = 8.0
+margin_top = 608.0
+margin_right = 144.0
+margin_bottom = 744.0
+rect_scale = Vector2( 0.8, 0.8 )
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Stat3" type="Panel" parent="Control/STATS/Stat6"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 128.0
+margin_bottom = 120.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Control/STATS/Stat6/Stat3"]
+margin_left = -8.0
+margin_top = -8.0
+margin_right = 264.0
+margin_bottom = 72.0
+rect_scale = Vector2( 0.5, 0.5 )
+text = "Wisdow"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Control/STATS/Stat6/Stat3"]
+margin_left = 8.0
+margin_top = 24.0
+margin_right = 112.0
+margin_bottom = 104.0
+align = 1
+placeholder_text = "11"
+placeholder_alpha = 0.435
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="dnd 5e highres" type="Sprite" parent="."]
+position = Vector2( 1244, 551.1 )
+scale = Vector2( 1.06195, 1.06195 )
+texture = ExtResource( 2 )

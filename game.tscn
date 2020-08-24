@@ -1,0 +1,1165 @@
+[gd_scene load_steps=17 format=2]
+
+[ext_resource path="res://font/ttf/AGoblinAppears-o2aV.ttf" type="DynamicFontData" id=1]
+[ext_resource path="res://Image/youaregod.jpeg" type="Texture" id=3]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+
+# To speak: 
+# Submit() grabs from lineEdit.text
+
+var speaking_in = \"common\"
+
+var current_roll_amount = 0
+var current_roll_modifier = 0
+var current_roll = {
+	\"d20\" : 0,
+	\"d12\" : 0,
+	\"d10\" : 0,
+	\"d08\" : 0,
+	\"d06\" : 0,
+	\"d04\" : 0,
+	\"d02\" : 0,
+}
+
+func heal():
+	$BGFX/BGP.emitting = false
+	yield(get_tree().create_timer(0.4), \"timeout\")
+	$BGFX/heal.emitting = true
+	yield(get_tree().create_timer(1.25), \"timeout\")
+	$BGFX/BGP.emitting = true
+
+func _ready():
+	if not network.dm:
+		$YouAreDM.hide()
+	setup_character()
+
+func submit():
+	# Heal() is a visual effect
+	heal()
+	if $Log/LineEdit.text.length() > 0:
+		if $Log/LineEdit.text[0] == \"!\":
+			var dice = {
+				\"text\": roll_dice(), 
+				\"lang\": \"common\",
+				\"translated_text\": \"\"
+			}
+			network.send_message(dice)
+		else:
+			var ts = convert_to_lang($Log/LineEdit.text, speaking_in)
+			network.send_message(ts)
+			$Log/LineEdit.text = \"\"
+
+func create_roll():
+	var roll = \"\"
+	var dice = {\"keys\": current_roll.keys(), \"values\": current_roll.values()}
+	var mod = current_roll_modifier
+	for x in range(dice.values.size()):
+		if dice.values[x] > 0 and dice.keys[x] != \"modifier\" and dice.keys[x] != \"amount\": 
+			roll += \"!\" + str(dice.values[x]) + str(dice.keys[x]) + \" \"
+	if mod != 0:
+		roll += \" + modifier: \" + str(mod)
+	$Log/LineEdit.text = roll
+
+func roll_dice():
+	randomize()
+	var result = []
+	var dice = {\"keys\": current_roll.keys(), \"values\": current_roll.values()}
+	for x in dice.keys.size():
+		for r in dice.values[x]: # Roll (d20 for example) for current roll times. If the number is 0, roll 0 times.
+			print(\"roll_dice() dice keys str() : \", str(dice.keys[x]))
+			print(\"roll_dice() dice keys int() : \", str(int(dice.keys[x])))
+			var c = int(dice.keys[x])
+			var num
+			if c == 0:
+				num = randi()%1+1
+			else:
+				num = randi()%c+1
+			result.append(num)
+	var sum = 0
+	for r in result.size():
+		sum += result[r]
+	sum += current_roll_modifier
+	var release = str(sum) + \"\\n\" + str(result)
+	if sum != 0:
+		return str(release)
+	clear_roll()
+	$Log/LineEdit.text = \"\"
+
+func add_text(text):
+	var old_text = $Log/bg/Label.bbcode_text
+	$Log/bg/Label.bbcode_text = \"\"
+	$Log/bg/Label.bbcode_text += text + \"\\n\" + old_text
+	$Log/LineEdit.text = \"\"
+
+func update_current_roll():
+	$CurrentRoll/Panel/Panel2/Label.text = \"\"
+	var current_roll_text = str(current_roll)
+	current_roll_text.erase(0, 1)
+	current_roll_text.erase(current_roll_text.length()-1, 2)
+	$CurrentRoll/Panel/Panel2/Label.text = str(current_roll_text)
+
+func _input(event):
+	if Input.is_key_pressed(KEY_ENTER):
+		submit()
+	if Input.is_key_pressed(KEY_BACKSPACE):
+		if $Log/LineEdit.text.length() > 0:
+			if $Log/LineEdit.text[0] == \"!\":
+				$Log/LineEdit.text = \"\"
+			clear_roll()
+	update_current_roll()
+
+func convert_to_lang(text = \"My name is Orc\", lang = \"common\"):
+	var count = 0
+	# Look for spaces. Add Words after every space + first word. 
+	for x in text.length():
+		if text[x] == \" \":
+			count += 1
+	var translated_text = \"\"
+	# Randomly pick words from a language wordlist in the data script
+	if lang != \"common\":
+		for x in range(count + 1):
+			randomize()
+			var rnum = randi()%data.languages[lang].size()
+			translated_text += str(data.languages[lang][rnum]) + \" \"
+	# Return a dictionary
+	var translation_dict = {
+		\"text\": text,
+		\"translated_text\": translated_text,
+		\"lang\": lang,
+	}
+	if lang == \"common\":
+		translation_dict.translated_text = \"\"
+	return translation_dict
+
+func clear_roll():
+	current_roll.d20 = 0
+	current_roll.d12 = 0
+	current_roll.d10 = 0
+	current_roll.d08 = 0
+	current_roll.d06 = 0
+	current_roll.d04 = 0
+	current_roll.d02 = 0
+	current_roll_modifier = 0
+	current_roll_amount = 0
+
+func _on_OptionButton_item_selected(index):
+	speaking_in = network.self_data.lang[index]
+
+func setup_character():
+	# Setup Languages You Can Speak #
+	for l in network.self_data.lang.size():
+		$OptionButton.add_item(network.self_data.lang[l])
+	pass
+"
+
+[sub_resource type="Curve" id=2]
+min_value = -360.0
+max_value = 360.0
+_data = [ Vector2( 0, -360 ), 0.0, 0.0, 0, 0, Vector2( 1, 202.909 ), 1756.89, 0.0, 0, 0 ]
+
+[sub_resource type="Gradient" id=3]
+offsets = PoolRealArray( 0.00375235, 0.808612, 1 )
+colors = PoolColorArray( 0.894531, 0.066391, 0.066391, 1, 0.222656, 0.148177, 0.13829, 1, 0.0627451, 0.0588235, 0.0588235, 1 )
+
+[sub_resource type="Gradient" id=4]
+offsets = PoolRealArray( 0, 0.808612, 1 )
+colors = PoolColorArray( 0.0922704, 0.894531, 0.066391, 1, 0.222656, 0.148177, 0.13829, 1, 0.0627451, 0.0588235, 0.0588235, 1 )
+
+[sub_resource type="GDScript" id=5]
+script/source = "extends Control
+
+onready var current_roll = get_parent().current_roll
+
+func clear():
+	for x in current_roll.values():
+		current_roll[x] = 0
+	print(current_roll)
+	pass
+
+func dice(roll = \"!1d20\"):
+	get_parent().create_roll()
+	pass
+
+func _on_d20_pressed():
+	current_roll.d20 += 1
+	get_parent().current_roll_amount += 1
+	dice(\"!\" + str(\"r\") + str(current_roll.d20) +  \"d20\")
+	pass
+
+func _on_d12_pressed():
+	current_roll.d12 += 1
+	get_parent().current_roll_amount += 1
+	dice(\"!\" + str(\"r\") + str(current_roll.d12) +  \"d12\")
+	pass # Replace with function body.
+
+func _on_d10_pressed():
+	current_roll.d10 += 1
+	get_parent().current_roll_amount += 1
+	dice(\"!\" + str(\"r\") + str(current_roll.d10) +  \"d10\")
+	pass # Replace with function body.
+
+func _on_d8_pressed():
+	current_roll.d08 += 1
+	get_parent().current_roll_amount += 1
+	dice(\"!\" + str(\"r\") + str(current_roll.d08) +  \"d08\")
+	pass # Replace with function body.
+
+func _on_d6_pressed():
+	current_roll.d06 += 1
+	get_parent().current_roll_amount += 1
+	dice(\"!\" + str(\"r\") + str(current_roll.d06) +  \"d06\")
+	pass # Replace with function body.
+
+func _on_d4_pressed():
+	current_roll.d04 += 1
+	get_parent().current_roll_amount += 1
+	dice(\"!\" + str(\"r\") + str(current_roll.d04) +  \"d04\")
+	pass # Replace with function body.
+
+func _on_coinflip_pressed():
+	current_roll.d02 += 1
+	get_parent().current_roll_amount += 1
+	dice(\"!\" + str(\"r\") + str(current_roll.d02) +  \"d02\")
+	pass # Replace with function body.
+
+func _on_modp_pressed():
+	get_parent().current_roll_modifier += 1
+	if get_parent().current_roll_modifier != 0:
+		get_parent().current_roll_amount += 1
+	else:
+		get_parent().current_roll_amount -= 1
+	get_parent().create_roll()
+	pass # Replace with function body.
+
+func _on_modm_pressed():
+	get_parent().current_roll_modifier -= 1
+	if get_parent().current_roll_modifier != 0:
+		get_parent().current_roll_amount += 1
+	else:
+		get_parent().current_roll_amount -= 1
+	get_parent().create_roll()
+	pass # Replace with function body.
+"
+
+[sub_resource type="StyleBoxFlat" id=6]
+bg_color = Color( 0.0588235, 0.0588235, 0.0588235, 1 )
+
+[sub_resource type="DynamicFont" id=7]
+size = 8
+font_data = ExtResource( 1 )
+
+[sub_resource type="Theme" id=8]
+default_font = SubResource( 7 )
+
+[sub_resource type="StyleBoxFlat" id=9]
+bg_color = Color( 0.156863, 0.14902, 0.14902, 1 )
+
+[sub_resource type="DynamicFont" id=10]
+size = 6
+font_data = ExtResource( 1 )
+
+[sub_resource type="Theme" id=11]
+default_font = SubResource( 10 )
+
+[sub_resource type="DynamicFont" id=12]
+size = 8
+font_data = ExtResource( 1 )
+
+[sub_resource type="Theme" id=13]
+default_font = SubResource( 12 )
+
+[sub_resource type="GDScript" id=14]
+script/source = "extends Control
+
+var lobby = {
+	\"panda\": {
+		\"name\": \"Blerg\",
+		\"level\": 10,
+		\"hp\": 10,
+		\"ac\": 10,
+		\"class\": \"Barbarian\",
+	},
+	\"ass\": {
+		\"name\": \"puckersucker\",
+		\"level\": 10,
+		\"hp\": 10,
+		\"ac\": 10,
+		\"class\": \"Hellspawn\",
+	},
+	\"penis\": {
+		\"name\": \"org'sm\",
+		\"level\": 10,
+		\"hp\": 10,
+		\"ac\": 10,
+		\"class\": \"Tomb\",
+	},
+}
+func set_char(name, type, level, hp, ac):
+	
+	$CS/Panel/Name/Label.text = name
+	$CS/Panel/Class/Label.text = type
+	$CS/Panel/Level/Label.text = level
+	$CS/Panel/HP/Label.text = hp
+	$CS/Panel/AC/Label.text = ac
+	pass
+
+func _process(delta):
+	pass
+
+func _on_Char_mouse_entered():
+	$CS/Panel.show()
+	pass # Replace with function body.
+
+
+func _on_Char_mouse_exited():
+	$CS/Panel.hide()
+	pass # Replace with function body.
+"
+
+[node name="Game" type="Node2D"]
+scale = Vector2( 1.87, 1.87 )
+script = SubResource( 1 )
+
+[node name="YouAreDM" type="Sprite" parent="."]
+position = Vector2( 512.467, 288.77 )
+scale = Vector2( 1.06035, 1.05971 )
+texture = ExtResource( 3 )
+
+[node name="BGFX" type="Node2D" parent="."]
+
+[node name="ColorRect" type="ColorRect" parent="BGFX"]
+margin_right = 1027.0
+margin_bottom = 578.0
+color = Color( 0.0627451, 0.0588235, 0.0588235, 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BGP" type="CPUParticles2D" parent="BGFX"]
+position = Vector2( 511.23, 581.818 )
+amount = 400
+lifetime = 2.0
+randomness = 1.0
+emission_shape = 2
+emission_rect_extents = Vector2( 500, 0.1 )
+direction = Vector2( 0, -20 )
+spread = 64.0
+gravity = Vector2( 0, 0 )
+initial_velocity = 200.0
+initial_velocity_random = 1.0
+linear_accel = 56.63
+damping = 100.0
+damping_random = 0.2
+angle = 720.0
+angle_random = 0.6
+angle_curve = SubResource( 2 )
+scale_amount = 5.0
+scale_amount_random = 1.0
+color_ramp = SubResource( 3 )
+
+[node name="heal" type="CPUParticles2D" parent="BGFX"]
+position = Vector2( 511.23, 581.818 )
+emitting = false
+amount = 400
+lifetime = 2.0
+one_shot = true
+explosiveness = 0.75
+randomness = 1.0
+emission_shape = 2
+emission_rect_extents = Vector2( 500, 0.1 )
+direction = Vector2( 20, 20 )
+spread = 180.0
+gravity = Vector2( 0, -98 )
+initial_velocity = 32.0
+initial_velocity_random = 1.0
+linear_accel = 56.63
+scale_amount = 5.0
+scale_amount_random = 1.0
+color_ramp = SubResource( 4 )
+
+[node name="Log" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="bg" type="Panel" parent="Log"]
+margin_left = 719.0
+margin_top = 17.0
+margin_right = 1010.0
+margin_bottom = 566.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="RichTextLabel" parent="Log/bg"]
+margin_left = 8.0
+margin_top = 36.0
+margin_right = 280.0
+margin_bottom = 537.0
+focus_mode = 2
+custom_constants/table_vseparation = 2
+custom_constants/shadow_as_outline = 1
+bbcode_enabled = true
+fit_content_height = true
+selection_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LineEdit" type="LineEdit" parent="Log"]
+margin_left = 727.0
+margin_top = 25.0
+margin_right = 1001.0
+margin_bottom = 49.0
+align = 3
+placeholder_text = "Write Here"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="diceroll" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+script = SubResource( 5 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="d20" type="Button" parent="diceroll"]
+margin_left = 672.0
+margin_top = 16.0
+margin_right = 712.0
+margin_bottom = 56.0
+focus_mode = 0
+text = "d20"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="d12" type="Button" parent="diceroll"]
+margin_left = 624.0
+margin_top = 16.0
+margin_right = 664.0
+margin_bottom = 56.0
+focus_mode = 0
+button_mask = 3
+text = "d12"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="d10" type="Button" parent="diceroll"]
+margin_left = 576.0
+margin_top = 16.0
+margin_right = 616.0
+margin_bottom = 56.0
+focus_mode = 0
+button_mask = 3
+text = "d10"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="d8" type="Button" parent="diceroll"]
+margin_left = 672.0
+margin_top = 64.0
+margin_right = 712.0
+margin_bottom = 104.0
+focus_mode = 0
+button_mask = 3
+text = "d8"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="d6" type="Button" parent="diceroll"]
+margin_left = 624.0
+margin_top = 64.0
+margin_right = 664.0
+margin_bottom = 104.0
+focus_mode = 0
+button_mask = 3
+text = "d6"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="d4" type="Button" parent="diceroll"]
+margin_left = 576.0
+margin_top = 64.0
+margin_right = 616.0
+margin_bottom = 104.0
+focus_mode = 0
+button_mask = 3
+text = "d4"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="coinflip" type="Button" parent="diceroll"]
+margin_left = 672.0
+margin_top = 112.0
+margin_right = 712.0
+margin_bottom = 152.0
+focus_mode = 0
+button_mask = 3
+text = "Coin"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="modp" type="Button" parent="diceroll"]
+margin_left = 624.0
+margin_top = 112.0
+margin_right = 664.0
+margin_bottom = 152.0
+focus_mode = 0
+button_mask = 3
+text = "m+"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="modm" type="Button" parent="diceroll"]
+margin_left = 576.0
+margin_top = 112.0
+margin_right = 616.0
+margin_bottom = 152.0
+focus_mode = 0
+button_mask = 3
+text = "m-"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CurrentRoll" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="CurrentRoll"]
+margin_left = 503.0
+margin_top = 16.0
+margin_right = 567.0
+margin_bottom = 152.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel2" type="Panel" parent="CurrentRoll/Panel"]
+anchor_right = 0.949
+anchor_bottom = 0.983
+margin_left = 2.0
+margin_top = 3.0
+margin_right = 1.264
+margin_bottom = 0.311996
+custom_styles/panel = SubResource( 6 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CurrentRoll/Panel/Panel2"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 2.0
+margin_top = 2.0
+margin_right = -2.0
+margin_bottom = -2.0
+autowrap = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="OptionButton" type="OptionButton" parent="."]
+margin_left = 604.0
+margin_top = 188.0
+margin_right = 708.0
+margin_bottom = 212.0
+text = "common"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="OptionButton"]
+margin_top = -24.0
+margin_right = 88.0
+margin_bottom = -4.0
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="OptionButton/Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Language"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="DM" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CharSheet" type="Control" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+theme = SubResource( 8 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="CharSheet"]
+margin_left = 32.0
+margin_top = 32.0
+margin_right = 332.0
+margin_bottom = 228.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Name" type="Label" parent="CharSheet/Panel"]
+margin_left = 16.0
+margin_top = 16.0
+margin_right = 62.0
+margin_bottom = 30.0
+text = "Name: "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Panel/Name"]
+margin_left = 48.0
+margin_right = 144.0
+margin_bottom = 14.0
+text = "PandaUnwise"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="lvl" type="Label" parent="CharSheet/Panel"]
+margin_left = 192.0
+margin_top = 16.0
+margin_right = 232.0
+margin_bottom = 30.0
+text = "Level: "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Panel/lvl"]
+margin_left = 52.0
+margin_right = 88.0
+margin_bottom = 14.0
+text = "1"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Class" type="Label" parent="CharSheet/Panel"]
+margin_left = 16.0
+margin_top = 32.0
+margin_right = 62.0
+margin_bottom = 46.0
+text = "Class:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Panel/Class"]
+margin_left = 48.0
+margin_right = 144.0
+margin_bottom = 14.0
+text = "Cleric"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Class2" type="Label" parent="CharSheet/Panel"]
+margin_left = 192.0
+margin_top = 32.0
+margin_right = 238.0
+margin_bottom = 46.0
+text = "Race:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Panel/Class2"]
+margin_left = 52.0
+margin_right = 92.0
+margin_bottom = 14.0
+text = "Orc"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="AC" type="Label" parent="CharSheet/Panel"]
+margin_left = 16.0
+margin_top = 48.0
+margin_right = 62.0
+margin_bottom = 62.0
+text = "Armor Class:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Panel/AC"]
+margin_left = 96.0
+margin_right = 128.0
+margin_bottom = 14.0
+text = "13"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Stats" type="Panel" parent="CharSheet"]
+margin_left = 40.0
+margin_top = 96.0
+margin_right = 132.0
+margin_bottom = 220.0
+custom_styles/panel = SubResource( 9 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="STR" type="Label" parent="CharSheet/Stats"]
+margin_left = 8.0
+margin_top = 24.0
+margin_right = 48.0
+margin_bottom = 38.0
+text = "STR:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Stats/STR"]
+margin_left = 36.0
+margin_right = 68.0
+margin_bottom = 14.0
+text = "14 (+2)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="DEX" type="Label" parent="CharSheet/Stats"]
+margin_left = 8.0
+margin_top = 40.0
+margin_right = 48.0
+margin_bottom = 54.0
+text = "DEX:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Stats/DEX"]
+margin_left = 36.0
+margin_right = 68.0
+margin_bottom = 14.0
+text = "08 (-1)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CON" type="Label" parent="CharSheet/Stats"]
+margin_left = 8.0
+margin_top = 56.0
+margin_right = 48.0
+margin_bottom = 70.0
+text = "CON:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Stats/CON"]
+margin_left = 36.0
+margin_right = 68.0
+margin_bottom = 14.0
+text = "15 (+2)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="INT" type="Label" parent="CharSheet/Stats"]
+margin_left = 8.0
+margin_top = 72.0
+margin_right = 48.0
+margin_bottom = 86.0
+text = "INT:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Stats/INT"]
+margin_left = 36.0
+margin_right = 68.0
+margin_bottom = 14.0
+text = "10 (+0)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="WIS" type="Label" parent="CharSheet/Stats"]
+margin_left = 8.0
+margin_top = 88.0
+margin_right = 48.0
+margin_bottom = 102.0
+text = "WIS:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Stats/WIS"]
+margin_left = 36.0
+margin_right = 68.0
+margin_bottom = 14.0
+text = "16 (+3)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CHA" type="Label" parent="CharSheet/Stats"]
+margin_left = 8.0
+margin_top = 104.0
+margin_right = 48.0
+margin_bottom = 118.0
+text = "CHA:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Stats/CHA"]
+margin_left = 36.0
+margin_right = 68.0
+margin_bottom = 14.0
+text = "12 (+1)"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Stats"]
+margin_right = 92.0
+margin_bottom = 20.0
+text = "STATS"
+align = 1
+valign = 1
+
+[node name="Control" type="Control" parent="CharSheet"]
+margin_left = 136.0
+margin_top = 116.0
+margin_right = 252.0
+margin_bottom = 220.0
+theme = SubResource( 11 )
+__meta__ = {
+"_edit_group_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="CharSheet/Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+custom_styles/panel = SubResource( 9 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CharSheet/Control/Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Control/Panel/VBoxContainer"]
+margin_top = -1.0
+margin_right = 116.0
+margin_bottom = 11.5
+rect_min_size = Vector2( 20, 12.5 )
+rect_pivot_offset = Vector2( 0, 2 )
+text = "SPELLS"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label2" type="Label" parent="CharSheet/Control/Panel/VBoxContainer"]
+margin_top = 15.0
+margin_right = 116.0
+margin_bottom = 27.5
+rect_min_size = Vector2( 20, 12.5 )
+rect_pivot_offset = Vector2( 0, 2 )
+text = "SPELLS"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label3" type="Label" parent="CharSheet/Control/Panel/VBoxContainer"]
+margin_top = 31.0
+margin_right = 116.0
+margin_bottom = 43.5
+rect_min_size = Vector2( 20, 12.5 )
+rect_pivot_offset = Vector2( 0, 2 )
+text = "SPELLS"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label4" type="Label" parent="CharSheet/Control/Panel/VBoxContainer"]
+margin_top = 47.0
+margin_right = 116.0
+margin_bottom = 59.5
+rect_min_size = Vector2( 20, 12.5 )
+rect_pivot_offset = Vector2( 0, 2 )
+text = "SPELLS"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label5" type="Label" parent="CharSheet/Control/Panel/VBoxContainer"]
+margin_top = 63.0
+margin_right = 116.0
+margin_bottom = 75.5
+rect_min_size = Vector2( 20, 12.5 )
+rect_pivot_offset = Vector2( 0, 2 )
+text = "SPELLS"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label6" type="Label" parent="CharSheet/Control/Panel/VBoxContainer"]
+margin_top = 79.0
+margin_right = 116.0
+margin_bottom = 91.5
+rect_min_size = Vector2( 20, 12.5 )
+rect_pivot_offset = Vector2( 0, 2 )
+text = "SPELLS"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Inspiration" type="CheckBox" parent="CharSheet"]
+margin_left = 296.0
+margin_top = 88.0
+margin_right = 320.0
+margin_bottom = 112.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="CharSheet/Inspiration"]
+margin_left = -88.0
+margin_top = 8.0
+margin_right = -2.0
+margin_bottom = 16.0
+text = "Inspiration"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Lobby" type="Control" parent="."]
+visible = false
+margin_left = 352.0
+margin_top = 32.0
+margin_right = 468.0
+margin_bottom = 152.0
+theme = SubResource( 13 )
+script = SubResource( 14 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="Lobby"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Lobby/Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Char" type="ColorRect" parent="Lobby/Panel/VBoxContainer"]
+margin_right = 116.0
+margin_bottom = 37.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+color = Color( 0.121569, 0.121569, 0.121569, 1 )
+
+[node name="Label" type="Label" parent="Lobby/Panel/VBoxContainer/Char"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "PandaUnwise"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Char2" type="ColorRect" parent="Lobby/Panel/VBoxContainer"]
+margin_top = 41.0
+margin_right = 116.0
+margin_bottom = 78.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+color = Color( 0.121569, 0.121569, 0.121569, 1 )
+
+[node name="Label" type="Label" parent="Lobby/Panel/VBoxContainer/Char2"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Ass"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Char3" type="ColorRect" parent="Lobby/Panel/VBoxContainer"]
+margin_top = 82.0
+margin_right = 116.0
+margin_bottom = 120.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+color = Color( 0.121569, 0.121569, 0.121569, 1 )
+
+[node name="Label" type="Label" parent="Lobby/Panel/VBoxContainer/Char3"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Penis"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="CS" type="Control" parent="Lobby"]
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Panel" type="Panel" parent="Lobby/CS"]
+margin_left = -248.0
+margin_top = 140.0
+margin_right = 280.0
+margin_bottom = 456.0
+
+[node name="Name" type="Label" parent="Lobby/CS/Panel"]
+margin_left = 24.0
+margin_top = 20.0
+margin_right = 66.0
+margin_bottom = 28.0
+text = "Name: "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Lobby/CS/Panel/Name"]
+margin_left = 48.0
+margin_right = 90.0
+margin_bottom = 8.0
+text = "Name"
+
+[node name="Class" type="Label" parent="Lobby/CS/Panel"]
+margin_left = 24.0
+margin_top = 36.0
+margin_right = 66.0
+margin_bottom = 44.0
+text = "Class:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Lobby/CS/Panel/Class"]
+margin_left = 48.0
+margin_right = 90.0
+margin_bottom = 8.0
+text = "Name"
+
+[node name="Level" type="Label" parent="Lobby/CS/Panel"]
+margin_left = 24.0
+margin_top = 52.0
+margin_right = 68.0
+margin_bottom = 60.0
+text = "Level:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Lobby/CS/Panel/Level"]
+margin_left = 48.0
+margin_right = 90.0
+margin_bottom = 8.0
+text = "Name"
+
+[node name="HP" type="Label" parent="Lobby/CS/Panel"]
+margin_left = 152.0
+margin_top = 20.0
+margin_right = 196.0
+margin_bottom = 28.0
+text = "HP:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Lobby/CS/Panel/HP"]
+margin_left = 48.0
+margin_right = 90.0
+margin_bottom = 8.0
+text = "Name"
+
+[node name="AC" type="Label" parent="Lobby/CS/Panel"]
+margin_left = 152.0
+margin_top = 32.0
+margin_right = 196.0
+margin_bottom = 40.0
+text = "AC:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Lobby/CS/Panel/AC"]
+margin_left = 48.0
+margin_right = 90.0
+margin_bottom = 8.0
+text = "Name"
+[connection signal="pressed" from="diceroll/d20" to="diceroll" method="_on_d20_pressed"]
+[connection signal="pressed" from="diceroll/d12" to="diceroll" method="_on_d12_pressed"]
+[connection signal="pressed" from="diceroll/d10" to="diceroll" method="_on_d10_pressed"]
+[connection signal="pressed" from="diceroll/d8" to="diceroll" method="_on_d8_pressed"]
+[connection signal="pressed" from="diceroll/d6" to="diceroll" method="_on_d6_pressed"]
+[connection signal="pressed" from="diceroll/d4" to="diceroll" method="_on_d4_pressed"]
+[connection signal="pressed" from="diceroll/coinflip" to="diceroll" method="_on_coinflip_pressed"]
+[connection signal="pressed" from="diceroll/modp" to="diceroll" method="_on_modp_pressed"]
+[connection signal="pressed" from="diceroll/modm" to="diceroll" method="_on_modm_pressed"]
+[connection signal="item_selected" from="OptionButton" to="." method="_on_OptionButton_item_selected"]
+[connection signal="mouse_entered" from="Lobby/Panel/VBoxContainer/Char" to="Lobby" method="_on_Char_mouse_entered"]
+[connection signal="mouse_exited" from="Lobby/Panel/VBoxContainer/Char" to="Lobby" method="_on_Char_mouse_exited"]
+[connection signal="mouse_entered" from="Lobby/Panel/VBoxContainer/Char2" to="Lobby" method="_on_Char_mouse_entered"]
+[connection signal="mouse_exited" from="Lobby/Panel/VBoxContainer/Char2" to="Lobby" method="_on_Char_mouse_exited"]
+[connection signal="mouse_entered" from="Lobby/Panel/VBoxContainer/Char3" to="Lobby" method="_on_Char_mouse_entered"]
+[connection signal="mouse_exited" from="Lobby/Panel/VBoxContainer/Char3" to="Lobby" method="_on_Char_mouse_exited"]
