@@ -5,7 +5,7 @@
 [sub_resource type="GDScript" id=1]
 script/source = "extends Node2D
 
-var SERVER_IP = \"127.0.0.1\"
+var SERVER_IP = IP.get_local_addresses()[3]
 var SERVER_PORT = 55255
 var SERVER_MAX_PLAYERS = 10
 
@@ -19,6 +19,7 @@ func _ready():
 	get_tree().connect(\"server_disconnected\", self, \"_server_disconnected\")
 	get_tree().connect(\"connected_to_server\", self, \"_connected_to_server\")
 	get_tree().connect(\"connection_failed\", self, \"_connected_fail\")
+	SERVER_IP = IP.get_local_addresses()[3]
 	pass
 
 func update_networkLabel():
@@ -57,11 +58,9 @@ func update_player_list():
 	var list = $Players/Panel/Label
 	list.text = str(get_incoming_connections())
 	print(list.text)
-	pass
 
 sync func write(text):
 	$Chat/Chat.bbcode_text = \"(\" + str(network.self_data.realName)+ \"): \" + text + \"\\n\" + \"[color=#ddd]\" + $Chat/Chat.text + \"[/color]\"
-	pass
 
 func host_server():
 	write(\"Starting Server...\")
@@ -69,7 +68,7 @@ func host_server():
 	var peer = NetworkedMultiplayerENet.new()
 	peer.create_server(SERVER_PORT, SERVER_MAX_PLAYERS)
 	get_tree().set_network_peer(peer)
-	write(\"[color=#88f]Server has been started at \" + str(SERVER_IP) + \":\" + str(SERVER_PORT) + \"[/color]\")
+	write(\"[color=#88f]Server has been started at \" + str(IP.get_local_addresses()[3]) + \":\" + str(SERVER_PORT) + \"[/color]\")
 	$ServerAccess/Disconnect.disabled = false
 
 func join_server(ip, port):
@@ -104,6 +103,7 @@ func _connected_fail():
 	$ServerAccess/Disconnect.disabled = true
 
 func _on_fname_text_changed(new_text):
+	network.self_data.charName = str(new_text)
 	network.self_data.realName = str(new_text)
 
 func _on_SERVER_IP_text_changed(new_text):
@@ -114,14 +114,17 @@ func _on_SERVER_PORT_text_changed(new_text):
 
 func _on_AccessServer_pressed():
 	join_server(SERVER_IP, SERVER_PORT)
+	update_player_list()
 
 func _on_HostServer_pressed():
 	host_server()
+	update_player_list()
 
 func _on_Disconnect_pressed():
 	get_tree().network_peer = null
 	$ServerAccess/Disconnect.disabled = true
 	write(\"[color=#f88]You DISCONNECTED from the server. You are no longer connected to the server.[/color]\")
+	update_player_list()
 	pass # Replace with function body.
 "
 
