@@ -58,7 +58,7 @@ func update_player_list():
 	list.text = str(get_incoming_connections())
 	print(list.text)
 
-sync func write(text):
+remotesync func write(text):
 	$Chat/Chat.bbcode_text = \"(\" + str(network.self_data.realName)+ \"): \" + text + \"\\n\" + \"[color=#ddd]\" + $Chat/Chat.text + \"[/color]\"
 
 func host_server():
